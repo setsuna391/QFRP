@@ -16,10 +16,6 @@
 #include <unistd.h>
 #endif
 
-//资源初始化函数声明(由 qrc 文件自动生成)
-extern int qInitResources_frpc_binary();
-extern int qInitResources_app_icon();
-
 #ifndef Q_OS_WIN
 namespace {
 
@@ -64,9 +60,9 @@ int main(int argc, char *argv[])
     //强制 full hinting 让笔画对齐物理像素网格(仅本进程生效,不改系统字体配置)
     qputenv("QT_FREETYPE_PROPERTIES", "Noto Sans CJK SC:hintstyle=hintfull:hinting=true");
 
-    //初始化资源(否则编译进二进制的资源无法访问)
-    Q_INIT_RESOURCE(frpc_binary);
-    Q_INIT_RESOURCE(app_icon);
+    //资源(图标/内置壁纸/frpc)由 qt_add_resources 注册进本目标,
+    //其构造函数会在 main 之前自动初始化,无需手动 Q_INIT_RESOURCE
+    //(MSVC 下该符号不导出,手动 extern 声明会导致链接失败)
 
     QGuiApplication app(argc, argv);
     QGuiApplication::setOrganizationName("QML_FRPC");
