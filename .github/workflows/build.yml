@@ -120,6 +120,9 @@ jobs:
           curl -sL -o linuxdeployqt.AppImage https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage 2>&1 | tee pkg-log.txt
           chmod +x linuxdeployqt.AppImage
           ./linuxdeployqt.AppImage AppDir/usr/share/applications/qml-frpc.desktop -qmldir=qml -appimage 2>&1 | tee -a pkg-log.txt
+          #linuxdeployqt 会把 git 提交哈希拼进文件名,统一改名便于上传和挂 Release
+          for f in QFRP-*-x86_64.AppImage; do mv "$f" QFRP-x86_64.AppImage; done
+          ls -la QFRP-x86_64.AppImage
 
       - name: 失败时推送构建日志到仓库
         if: failure() && hashFiles('pkg-log.txt') != ''
