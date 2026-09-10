@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=QFRP
+Name[en]=QFRP
+GenericName=FRP 隧道管理
+Comment=QML-GUI-FRPC 隧道管理客户端
+Comment[en]=QML-GUI-FRPC tunnel manager
+Exec=QML_FRPC
+Icon=qml-frpc
+Terminal=false
+Categories=Network;RemoteAccess;
+Keywords=frp;natfrp;sakura;内网穿透;隧道;
+StartupWMClass=QML_FRPC

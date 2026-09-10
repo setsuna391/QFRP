@@ -1,0 +1,23 @@
+# 构建产物
+out/
+build/
+compile_commands.json
+
+# 编辑器/IDE 本地配置
+.vscode/
+
+# 个人素材(太大,不宜入库;要作为内置壁纸请压缩后放 assets/wallpaper.*)
+source/
+
+# frpc 二进制由 CMake 配置时自动下载,不入库
+third_party/frpc
+
+# qmake 时代的遗留脚本,实际构建走 CMake
+Makefile
+
+# 空占位目录
+lib/
+output/
+
+*.user
+.DS_Store
