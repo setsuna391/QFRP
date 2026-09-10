@@ -1,0 +1,137 @@
+name: 构建 (Windows / Linux)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Qt 6.8 (MSVC x64)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.2'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          cache: true
+
+      - name: 配置
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: 编译
+        shell: pwsh
+        run: |
+          cmake --build build --config Release --parallel 2>&1 | Tee-Object -FilePath build-log.txt
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: 失败时推送构建日志到仓库
+        if: failure()
+        shell: pwsh
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git add build-log.txt
+          git commit -m "CI 构建日志 [skip ci]"
+          git push
+
+      - name: 部署运行时并打包
+        shell: pwsh
+        run: |
+          windeployqt --release --qmldir qml build\bin\Release\QML_FRPC.exe
+          Compress-Archive -Path build\bin\Release\* -DestinationPath QFRP-windows-x64.zip
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: QFRP-windows-x64
+          path: QFRP-windows-x64.zip
+
+      - name: 发布到 Release(仅 tag 触发)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: QFRP ${{ github.ref_name }}
+          body: |
+            ## 下载
+
+            - **QFRP-windows-x64.zip**:Windows 10/11 x64,解压后直接运行 `QML_FRPC.exe`
+            - **QFRP-x86_64.AppImage**:Linux 通用格式,`chmod +x` 后直接运行(需要桌面环境)
+            - Qt 运行库与 frpc 均已内嵌,目标机器无需安装任何依赖
+
+            ## 注意
+
+            - Windows 程序未签名,首次运行 SmartScreen 会警告,点"更多信息 → 仍要运行"即可
+            - 内置 frpc 来自 natfrp 官方分发,登录需要你自己的 SakuraFrp 访问 Token
+          files: QFRP-windows-x64.zip
+
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Qt 6.8 (GCC x64)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.2'
+          host: 'linux'
+          target: 'desktop'
+          arch: 'gcc_64'
+          cache: true
+
+      - name: 安装构建依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-dev libfuse2 file desktop-file-utils
+
+      - name: 配置
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+
+      - name: 编译
+        shell: bash
+        run: |
+          cmake --build build --parallel 2>&1 | tee build-log-linux.txt
+          test ${PIPESTATUS[0]} -eq 0
+
+      - name: 失败时推送构建日志到仓库
+        if: failure()
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git add build-log-linux.txt
+          git commit -m "CI Linux 构建日志 [skip ci]"
+          git push
+
+      - name: 组装 AppDir
+        run: |
+          cmake --install build --prefix "$GITHUB_WORKSPACE/AppDir/usr"
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+          cp assets/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/qml-frpc.png
+
+      - name: 打包 AppImage
+        run: |
+          curl -sL -o linuxdeployqt.AppImage https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
+          chmod +x linuxdeployqt.AppImage
+          ./linuxdeployqt.AppImage AppDir/usr/share/applications/qml-frpc.desktop -qmldir qml -appimage
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: QFRP-linux-x64
+          path: QFRP-x86_64.AppImage
+
+      - name: 发布到 Release(仅 tag 触发)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: QFRP-x86_64.AppImage
