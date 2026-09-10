@@ -138,26 +138,29 @@ jobs:
 
       - name: 发布到 Release(仅 tag 触发)
         if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: QFRP-x86_64.AppImage
-
-      - name: 自检 Release 资产并把现场推回仓库
-        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          sleep 20
-          {
-            echo "== 工作目录里的 AppImage 文件 =="
-            ls -la *.AppImage || true
-            echo "== Release 上的资产 =="
-            curl -s "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" | python3 -c "import json,sys; [print(a['name'], a['size']) for a in json.load(sys.stdin).get('assets',[])]" || true
-          } | tee release-check.txt
-          grep -q "QFRP-x86_64.AppImage" <(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}") || {
+          set -e
+          ls -la *.AppImage
+          #Windows job 通常先建好 Release;万一本 job 先跑完,这里兜底创建
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || \
+            gh release create "${GITHUB_REF_NAME}" --title "QFRP ${GITHUB_REF_NAME}" --notes "QFRP ${{ github.ref_name }}"
+          gh release upload "${GITHUB_REF_NAME}" QFRP-x86_64.AppImage --clobber
+          sleep 10
+          ASSET_OK=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" | python3 -c "
+import json,sys
+names=[a['name'] for a in json.load(sys.stdin).get('assets',[])]
+print('yes' if 'QFRP-x86_64.AppImage' in names else 'no')")
+          echo "Release 资产校验: $ASSET_OK"
+          if [ "$ASSET_OK" != "yes" ]; then
+            { echo "== CI 工作目录里的 AppImage =="; ls -la *.AppImage
+              echo "== Release 实际资产 =="; curl -s "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}"; } > release-check.txt
             git config user.name "ci-bot"
             git config user.email "ci-bot@users.noreply.github.com"
             git add -f release-check.txt
-            git commit -m "Release 资产自检 [skip ci]"
+            git commit -m "Release 资产异常现场 [skip ci]"
             git push
             exit 1
-          }
+          fi
