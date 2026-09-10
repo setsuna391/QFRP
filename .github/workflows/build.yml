@@ -113,6 +113,10 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
+          PLUGINS_DIR=$(qmake -query QT_INSTALL_PLUGINS)
+          #Qt 附带的 SQL 驱动插件依赖外部库(libmimerapi 等)且应用不使用 SQL,
+          #留着会让 linuxdeployqt 因 ldd 找不到依赖而中止
+          rm -rf "$PLUGINS_DIR/sqldrivers"
           curl -sL -o linuxdeployqt.AppImage https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage 2>&1 | tee pkg-log.txt
           chmod +x linuxdeployqt.AppImage
           ./linuxdeployqt.AppImage AppDir/usr/share/applications/qml-frpc.desktop -qmldir=qml -appimage 2>&1 | tee -a pkg-log.txt
