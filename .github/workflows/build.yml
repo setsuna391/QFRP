@@ -168,5 +168,6 @@ jobs:
           git config user.name "ci-bot"
           git config user.email "ci-bot@users.noreply.github.com"
           git add -f gh-release-log.txt
-          git commit -m "CI 发布日志 [skip ci]"
-          git push
+          git commit -m "CI 发布日志 [skip ci]" || true
+          #tag 触发的运行处于游离 HEAD,必须显式指明推到 main
+          git push origin HEAD:main
