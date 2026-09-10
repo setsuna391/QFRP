@@ -1,0 +1,4 @@
+linuxdeployqt  (commit ), build 107 built on 2025-10-21 17:57:43 UTC
+ERROR: Missing qml directory path
+ERROR: Unknown argument: "qml" 
+
