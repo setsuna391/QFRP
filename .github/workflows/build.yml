@@ -86,7 +86,7 @@ jobs:
           version: '6.8.2'
           host: 'linux'
           target: 'desktop'
-          arch: 'gcc_64'
+          arch: 'linux_gcc_64'
           cache: true
 
       - name: 安装构建依赖
@@ -104,7 +104,7 @@ jobs:
           test ${PIPESTATUS[0]} -eq 0
 
       - name: 失败时推送构建日志到仓库
-        if: failure()
+        if: failure() && hashFiles('build-log-linux.txt') != ''
         run: |
           git config user.name "ci-bot"
           git config user.email "ci-bot@users.noreply.github.com"
