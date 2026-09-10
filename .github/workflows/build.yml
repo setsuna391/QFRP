@@ -103,15 +103,6 @@ jobs:
           cmake --build build --parallel 2>&1 | tee build-log-linux.txt
           test ${PIPESTATUS[0]} -eq 0
 
-      - name: 失败时推送构建日志到仓库
-        if: failure() && hashFiles('build-log-linux.txt') != ''
-        run: |
-          git config user.name "ci-bot"
-          git config user.email "ci-bot@users.noreply.github.com"
-          git add build-log-linux.txt
-          git commit -m "CI Linux 构建日志 [skip ci]"
-          git push
-
       - name: 组装 AppDir
         run: |
           cmake --install build --prefix "$GITHUB_WORKSPACE/AppDir/usr"
@@ -119,10 +110,21 @@ jobs:
           cp assets/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/qml-frpc.png
 
       - name: 打包 AppImage
+        shell: bash
         run: |
-          curl -sL -o linuxdeployqt.AppImage https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage
+          set -o pipefail
+          curl -sL -o linuxdeployqt.AppImage https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage 2>&1 | tee pkg-log.txt
           chmod +x linuxdeployqt.AppImage
-          ./linuxdeployqt.AppImage AppDir/usr/share/applications/qml-frpc.desktop -qmldir qml -appimage
+          ./linuxdeployqt.AppImage AppDir/usr/share/applications/qml-frpc.desktop -qmldir qml -appimage 2>&1 | tee -a pkg-log.txt
+
+      - name: 失败时推送构建日志到仓库
+        if: failure() && hashFiles('pkg-log.txt') != ''
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git add pkg-log.txt
+          git commit -m "CI AppImage 打包日志 [skip ci]"
+          git push
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
