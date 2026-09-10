@@ -60,4 +60,4 @@ assets/     应用图标;可放 assets/wallpaper.* 作为内置默认壁纸
 
 ## 许可
 
-尚未选择许可证,如需使用请先联系作者。
+本项目基于 [MIT License](LICENSE) 开源。SakuraFrp / natfrp 是其服务提供商的商标,本项目与其无隶属关系,仅为第三方客户端。
