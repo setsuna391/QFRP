@@ -147,6 +147,8 @@ jobs:
           #Windows job 通常先建好 Release;万一本 job 先跑完,这里兜底创建
           gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 || \
             gh release create "${GITHUB_REF_NAME}" --title "QFRP ${GITHUB_REF_NAME}" --notes "QFRP ${{ github.ref_name }}"
+          #删除 tag 会让关联的 Release 变回草稿;每次发布强制转正
+          gh release edit "${GITHUB_REF_NAME}" --draft=false
           gh release upload "${GITHUB_REF_NAME}" QFRP-x86_64.AppImage --clobber
           sleep 10
           ASSET_OK=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" | python3 -c "
