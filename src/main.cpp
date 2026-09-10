@@ -8,14 +8,19 @@
 #include "AppSettings.h"
 #include "FrpcManager.h"
 
+//POSIX 信号处理仅类 Unix 平台使用;Windows 的 GUI 程序点关闭/系统注销
+//走 WM_CLOSE/WM_QUERYENDSESSION,Qt 会正常触发 aboutToQuit,无需处理信号
+#ifndef Q_OS_WIN
 #include <csignal>
 #include <sys/socket.h>
 #include <unistd.h>
+#endif
 
 //资源初始化函数声明(由 qrc 文件自动生成)
 extern int qInitResources_frpc_binary();
 extern int qInitResources_app_icon();
 
+#ifndef Q_OS_WIN
 namespace {
 
 //SIGTERM/SIGINT 的默认行为是立即终止进程,不会执行任何退出钩子
@@ -50,6 +55,7 @@ void installSignalHandlers(QCoreApplication* app)
 }
 
 } // namespace
+#endif // !Q_OS_WIN
 
 //程序入口:创建 Qt 应用、QML 引擎,把 ApiClient/FrpcManager 单例注册给 QML,然后加载主界面
 int main(int argc, char *argv[])
@@ -70,7 +76,9 @@ int main(int argc, char *argv[])
     //窗口图标(内嵌资源,Wayland 下任务栏/启动器图标由 .desktop 提供)
     app.setWindowIcon(QIcon(":/assets/icon.png"));
 
+#ifndef Q_OS_WIN
     installSignalHandlers(&app);
+#endif
 
     //Qt Quick 默认用距离场渲染文本,在 1.2x 这类分数缩放的屏幕上边缘会发虚;
     //NativeTextRendering 直接按真实 devicePixelRatio 走 FreeType 光栅化,最锐利

@@ -13,8 +13,12 @@
 #include <QSysInfo>
 #include <QTimer>
 #include <utility>
+#ifndef Q_OS_WIN
 #include <csignal>
 #include <unistd.h>
+#else
+#include <windows.h>
+#endif
 
 namespace {
 
@@ -301,7 +305,12 @@ void FrpcManager::stopSpawned(const QString& tunnelId)
     if (!entry.proc)
         return;
     m_userStopped.insert(tunnelId);
+#ifdef Q_OS_WIN
+    //frpc 是无窗口的控制台程序,Windows 的 terminate()(投递 WM_CLOSE)对它无效,直接杀
+    entry.proc->kill();
+#else
     entry.proc->terminate();
+#endif
     QPointer<QProcess> guard(entry.proc);
     QTimer::singleShot(3000, this, [guard]() {
         if (guard && guard->state() != QProcess::NotRunning)
@@ -315,6 +324,21 @@ void FrpcManager::stopAdopted(const QString& tunnelId)
     if (!entry.pid)
         return;
     m_userStopped.insert(tunnelId);
+#ifdef Q_OS_WIN
+    //Windows 没有 SIGTERM:TerminateProcess,3 秒后收尾(存活轮询已被标记跳过)
+    const HANDLE h = ::OpenProcess(PROCESS_TERMINATE, FALSE, static_cast<DWORD>(entry.pid));
+    if (h) {
+        ::TerminateProcess(h, 0);
+        ::CloseHandle(h);
+        QTimer::singleShot(3000, this, [this, tunnelId]() {
+            cleanupProcess(tunnelId);
+            emit stopped(tunnelId, 0);
+        });
+    } else {
+        cleanupProcess(tunnelId);
+        emit stopped(tunnelId, -1);
+    }
+#else
     qInfo().noquote() << QStringLiteral("[FrpcManager] sending SIGTERM to adopted pid").arg(entry.pid);
     if (::kill(static_cast<pid_t>(entry.pid), SIGTERM) == 0) {
         QTimer::singleShot(3000, this, [this, tunnelId, pid = entry.pid]() {
@@ -330,6 +354,7 @@ void FrpcManager::stopAdopted(const QString& tunnelId)
         cleanupProcess(tunnelId);
         emit stopped(tunnelId, -1);
     }
+#endif
 }
 
 void FrpcManager::cleanupProcess(const QString& tunnelId)
@@ -507,5 +532,16 @@ void FrpcManager::pumpLogFile(const QString& path)
 
 bool FrpcManager::pidAlive(qint64 pid) const
 {
+#ifdef Q_OS_WIN
+    //打开进程查退出码,STILL_ACTIVE(259) 表示仍在运行;打不开多半已退出
+    const HANDLE h = ::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, static_cast<DWORD>(pid));
+    if (!h)
+        return false;
+    DWORD code = 0;
+    const bool alive = ::GetExitCodeProcess(h, &code) && code == STILL_ACTIVE;
+    ::CloseHandle(h);
+    return alive;
+#else
     return ::kill(static_cast<pid_t>(pid), 0) == 0;
+#endif
 }

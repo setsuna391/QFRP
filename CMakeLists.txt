@@ -17,7 +17,8 @@ include_directories(include)
 file(GLOB SOURCES "src/*.cpp")
 
 add_executable(QML_FRPC ${SOURCES})
-set_target_properties(QML_FRPC PROPERTIES OUTPUT_NAME "QML_FRPC" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+set_target_properties(QML_FRPC PROPERTIES OUTPUT_NAME "QML_FRPC" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
+    WIN32_EXECUTABLE TRUE)
 
 #Theme.qml 是 QML 单例(必须在 qt_add_qml_module 之前设置)
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
@@ -56,7 +57,10 @@ set(FRPC_BUNDLED "${FRPC_BUNDLE_DIR}/frpc")
 
 if(NOT EXISTS "${FRPC_BUNDLED}")
     set(FRPC_TARGET_ARCH "linux_amd64")
-    if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
+    if(WIN32)
+        #Windows 本地构建或交叉编译:下载 Windows 版 frpc
+        set(FRPC_TARGET_ARCH "windows_amd64")
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
         set(FRPC_TARGET_ARCH "linux_arm64")
     elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^armv7")
         set(FRPC_TARGET_ARCH "linux_armv7")

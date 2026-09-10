@@ -1,0 +1,40 @@
+name: 构建 Windows 版
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Qt 6.7 (MSVC x64)
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.3'
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2019_64'
+          cache: true
+
+      - name: 配置
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: 编译
+        run: cmake --build build --config Release --parallel
+
+      - name: 部署运行时并打包
+        shell: pwsh
+        run: |
+          windeployqt --release --qmldir qml build\bin\Release\QML_FRPC.exe
+          Compress-Archive -Path build\bin\Release\* -DestinationPath QFRP-windows-x64.zip
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: QFRP-windows-x64
+          path: QFRP-windows-x64.zip
