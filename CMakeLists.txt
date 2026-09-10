@@ -48,6 +48,16 @@ target_link_libraries(QML_FRPC PRIVATE
     Qt6::Network
 )
 
+if(MSVC)
+    #源码与中文字符串字面量均为 UTF-8 编码,MSVC 需要显式指定,否则按本地码页误读
+    target_compile_options(QML_FRPC PRIVATE /utf-8)
+endif()
+
+if(WIN32)
+    #WIN32_EXECUTABLE(无控制台黑窗)需要 Qt 提供的 WinMain 入口实现
+    target_link_libraries(QML_FRPC PRIVATE Qt6::EntryPointPrivate)
+endif()
+
 # ===== 内置 frpc =====
 # 配置阶段从 natfrp 官方下载一份 frpc 存到 third_party/,打包进 Qt 资源。
 # 应用启动时若缓存目录里没有 frpc,会从资源里解包使用;
