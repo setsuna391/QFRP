@@ -142,6 +142,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          exec > >(tee gh-release-log.txt) 2>&1
           set -e
           ls -la *.AppImage
           #Windows job 通常先建好 Release;万一本 job 先跑完,这里兜底创建
@@ -151,16 +152,21 @@ jobs:
           gh release edit "${GITHUB_REF_NAME}" --draft=false
           gh release upload "${GITHUB_REF_NAME}" QFRP-x86_64.AppImage --clobber
           sleep 10
-          #注意:下面 python 必须写成单行,块内顶格内容会截断 YAML
-          ASSET_OK=$(curl -s "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" | python3 -c "import json,sys; names=[a['name'] for a in json.load(sys.stdin).get('assets',[])]; print('yes' if 'QFRP-x86_64.AppImage' in names else 'no')")
+          #校验必须带认证:草稿状态的 Release 对匿名 API 不可见
+          ASSET_OK=$(curl -s -H "Authorization: Bearer ${{ github.token }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}" \
+            | python3 -c "import json,sys; names=[a['name'] for a in json.load(sys.stdin).get('assets',[])]; print('yes' if 'QFRP-x86_64.AppImage' in names else 'no')")
           echo "Release 资产校验: $ASSET_OK"
           if [ "$ASSET_OK" != "yes" ]; then
-            { echo "== CI 工作目录里的 AppImage =="; ls -la *.AppImage
-              echo "== Release 实际资产 =="; curl -s "https://api.github.com/repos/${{ github.repository }}/releases/tags/${{ github.ref_name }}"; } > release-check.txt
-            git config user.name "ci-bot"
-            git config user.email "ci-bot@users.noreply.github.com"
-            git add -f release-check.txt
-            git commit -m "Release 资产异常现场 [skip ci]"
-            git push
             exit 1
           fi
+
+      - name: 失败时推送发布日志到仓库
+        if: failure() && hashFiles('gh-release-log.txt') != ''
+        shell: bash
+        run: |
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git add -f gh-release-log.txt
+          git commit -m "CI 发布日志 [skip ci]"
+          git push
