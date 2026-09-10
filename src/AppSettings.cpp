@@ -1,8 +1,10 @@
 #include "AppSettings.h"
 
+#include <QClipboard>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QGuiApplication>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QUrl>
@@ -85,4 +87,9 @@ QString AppSettings::pickWallpaper(const QString& source)
 void AppSettings::clearWallpaper()
 {
     setWallpaperFile(QString());
+}
+
+void AppSettings::copyText(const QString& text)
+{
+    QGuiApplication::clipboard()->setText(text);
 }

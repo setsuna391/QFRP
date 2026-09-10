@@ -33,6 +33,8 @@ public:
     //参数可以是本地路径或 file:// URL(QML FileDialog 给的是 URL)
     Q_INVOKABLE QString pickWallpaper(const QString& source);
     Q_INVOKABLE void clearWallpaper();
+    //复制任意文本到系统剪贴板(QML 原生没有可靠的剪贴板访问)
+    Q_INVOKABLE void copyText(const QString& text);
 
 signals:
     void wallpaperFileChanged();

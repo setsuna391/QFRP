@@ -1226,6 +1226,87 @@ Item {
                                     }
                                 }
 
+                                //QQ 号:点击复制到剪贴板
+                                RowLayout {
+                                    spacing: 8
+
+                                    Text {
+                                        text: "QQ"
+                                        color: cTextMuted
+                                        font.pixelSize: 12
+                                    }
+
+                                    Rectangle {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        width: 3
+                                        height: 3
+                                        radius: 1.5
+                                        color: cTextMuted
+                                    }
+
+                                    Text {
+                                        id: qqValue
+                                        property bool copied: false
+                                        text: copied ? "已复制 ✓" : "1537403715"
+                                        color: qqArea.containsMouse || copied ? Theme.cAccentHover : Theme.cAccent
+                                        font.pixelSize: 12
+                                        font.bold: true
+
+                                        Timer {
+                                            id: qqCopyReset
+                                            interval: 1500
+                                            onTriggered: qqValue.copied = false
+                                        }
+                                    }
+
+                                    MouseArea {
+                                        id: qqArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            appSettings.copyText("1537403715")
+                                            qqValue.copied = true
+                                            qqCopyReset.restart()
+                                        }
+                                    }
+                                }
+
+                                //GitHub 仓库:点击打开浏览器
+                                RowLayout {
+                                    spacing: 8
+
+                                    Text {
+                                        text: "GitHub"
+                                        color: cTextMuted
+                                        font.pixelSize: 12
+                                    }
+
+                                    Rectangle {
+                                        Layout.alignment: Qt.AlignVCenter
+                                        width: 3
+                                        height: 3
+                                        radius: 1.5
+                                        color: cTextMuted
+                                    }
+
+                                    Text {
+                                        text: "setsuna391/QFRP"
+                                        color: ghArea.containsMouse ? Theme.cAccentHover : Theme.cAccent
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                        font.underline: ghArea.containsMouse
+                                    }
+
+                                    MouseArea {
+                                        id: ghArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: Qt.openUrlExternally("https://github.com/setsuna391/QFRP")
+                                    }
+                                }
+
                                 Text {
                                     text: "基于 Qt6 + QML 开发"
                                     color: cTextMuted
