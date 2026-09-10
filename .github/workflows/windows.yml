@@ -12,10 +12,10 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Qt 6.7 (MSVC x64)
+      - name: 安装 Qt 6.8 (MSVC x64)
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.7.3'
+          version: '6.8.2'
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2019_64'
