@@ -1,4 +1,0 @@
--rwxr-xr-x 1 runner runner 49195512 Sep 10 20:36 QFRP-0b2a99d-x86_64.AppImage
--rwxr-xr-x 1 runner runner 30202360 Sep 10 20:29 linuxdeployqt.AppImage
-https://github.com/setsuna391/QFRP/releases/tag/v0.1.0
-no matches found for `QFRP-x86_64.AppImage`
