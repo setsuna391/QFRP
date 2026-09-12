@@ -107,7 +107,14 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          git clone --depth 1 --branch v6.8.2 https://github.com/qt/qtwayland.git 2>&1 | tee qtwayland-log.txt
+          #github clone 偶发网络抖动,失败自动重试两次
+          git clone --depth 1 --branch v6.8.2 https://github.com/qt/qtwayland.git 2>&1 | tee qtwayland-log.txt || {
+            sleep 20
+            git clone --depth 1 --branch v6.8.2 https://github.com/qt/qtwayland.git 2>&1 | tee -a qtwayland-log.txt
+          } || {
+            sleep 40
+            git clone --depth 1 --branch v6.8.2 https://github.com/qt/qtwayland.git 2>&1 | tee -a qtwayland-log.txt
+          }
           cmake -S qtwayland -B qtwayland-build \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="$(qmake -query QT_INSTALL_PREFIX)" 2>&1 | tee -a qtwayland-log.txt
