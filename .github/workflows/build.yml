@@ -95,12 +95,6 @@ jobs:
           sudo apt-get install -y libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
             libfuse2 file desktop-file-utils libwayland-dev libxkbcommon-dev
 
-      - name: 安装新版 wayland-protocols(22.04 的 1.25 低于 qtwayland 6.8 要求)
-        run: |
-          git clone --depth 1 --branch 1.37 https://gitlab.freedesktop.org/wayland/wayland-protocols.git
-          pip install meson
-          meson setup wp-build wayland-protocols -Dtests=false
-          sudo meson install -C wp-build
 
       - name: 源码编译 qtwayland(官方 Qt 二进制不发布 Wayland 插件)
         run: |
