@@ -92,15 +92,18 @@ jobs:
       - name: 安装构建依赖
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev libfuse2 file desktop-file-utils
+          sudo apt-get install -y libgl1-mesa-dev libfuse2 file desktop-file-utils \
+            libwayland-dev wayland-protocols libxkbcommon-dev
 
-      - name: 安装 Qt Wayland 模块
+      - name: 源码编译 qtwayland(官方 Qt 二进制不发布 Wayland 插件)
         run: |
-          pip install aqtinstall
-          QT_PREFIX=$(qmake -query QT_INSTALL_PREFIX)
-          python -m aqt install-qt linux desktop 6.8.2 gcc_64 -m qtwayland \
-            -O "$(dirname "$(dirname "$QT_PREFIX")")"
-          ls "$QT_PREFIX/plugins/platforms/" | grep wayland
+          git clone --depth 1 --branch v6.8.2 https://github.com/qt/qtwayland.git
+          cmake -S qtwayland -B qtwayland-build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$(qmake -query QT_INSTALL_PREFIX)"
+          cmake --build qtwayland-build --parallel
+          cmake --install qtwayland-build
+          ls "$(qmake -query QT_INSTALL_PLUGINS)"/platforms/ | grep wayland
 
       - name: 配置
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
@@ -116,12 +119,6 @@ jobs:
           cmake --install build --prefix "$GITHUB_WORKSPACE/AppDir/usr"
           mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
           cp assets/icon.png AppDir/usr/share/icons/hicolor/256x256/apps/qml-frpc.png
-          #linuxdeployqt 基于 ldd 只会打进 xcb 平台插件,Wayland 会话下启动即崩;
-          #手动补进 wayland 插件及配套子目录,让 AppImage 原生跑在 Wayland 上
-          PLUGINS=$(qmake -query QT_INSTALL_PLUGINS)
-          mkdir -p AppDir/usr/plugins/platforms
-          cp -v "$PLUGINS"/platforms/libqwayland-*.so AppDir/usr/plugins/platforms/
-          cp -rv "$PLUGINS"/wayland-* AppDir/usr/plugins/ 2>/dev/null || true
 
       - name: 打包 AppImage
         shell: bash
