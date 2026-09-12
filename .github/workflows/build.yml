@@ -92,8 +92,15 @@ jobs:
       - name: 安装构建依赖
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev libfuse2 file desktop-file-utils \
-            libwayland-dev wayland-protocols libxkbcommon-dev
+          sudo apt-get install -y libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
+            libfuse2 file desktop-file-utils libwayland-dev libxkbcommon-dev
+
+      - name: 安装新版 wayland-protocols(22.04 的 1.25 低于 qtwayland 6.8 要求)
+        run: |
+          git clone --depth 1 --branch 1.37 https://gitlab.freedesktop.org/wayland/wayland-protocols.git
+          pip install meson
+          meson setup wp-build wayland-protocols -Dtests=false
+          sudo meson install -C wp-build
 
       - name: 源码编译 qtwayland(官方 Qt 二进制不发布 Wayland 插件)
         run: |
@@ -136,13 +143,14 @@ jobs:
           ls -la QFRP-x86_64.AppImage
 
       - name: 失败时推送构建日志到仓库
-        if: failure() && hashFiles('pkg-log.txt') != ''
+        if: failure() && (hashFiles('pkg-log.txt') != '' || hashFiles('build-log-linux.txt') != '')
         run: |
           git config user.name "ci-bot"
           git config user.email "ci-bot@users.noreply.github.com"
-          git add pkg-log.txt
-          git commit -m "CI AppImage 打包日志 [skip ci]"
-          git push
+          git add pkg-log.txt build-log-linux.txt 2>/dev/null || true
+          git commit -m "CI Linux 构建日志 [skip ci]" || true
+          #tag 触发的运行处于游离 HEAD,必须显式指明推到 main
+          git push origin HEAD:main
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
