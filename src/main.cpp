@@ -1,4 +1,5 @@
 #include <QGuiApplication>
+#include <cstdio>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickWindow>
@@ -53,6 +54,19 @@ void installSignalHandlers(QCoreApplication* app)
 } // namespace
 #endif // !Q_OS_WIN
 
+//消息处理器:部分桌面环境(如 niri + 沙盒启动)下 stderr 会被丢弃,
+//Qt/QML 的警告与错误统一落一份到 /tmp/qfrp-messages.log 便于排查
+static void fileMessageHandler(QtMsgType type, const QMessageLogContext &, const QString &msg)
+{
+    const char *label = type == QtWarningMsg ? "W" : type == QtCriticalMsg ? "C"
+                       : type == QtFatalMsg ? "F" : type == QtInfoMsg ? "I" : "D";
+    fprintf(stderr, "[%s] %s\n", label, qPrintable(msg));
+    if (FILE *f = fopen("/tmp/qfrp-messages.log", "a")) {
+        fprintf(f, "[%s] %s\n", label, qPrintable(msg));
+        fclose(f);
+    }
+}
+
 //程序入口:创建 Qt 应用、QML 引擎,把 ApiClient/FrpcManager 单例注册给 QML,然后加载主界面
 int main(int argc, char *argv[])
 {
@@ -75,6 +89,8 @@ int main(int argc, char *argv[])
 #ifndef Q_OS_WIN
     installSignalHandlers(&app);
 #endif
+
+    qInstallMessageHandler(fileMessageHandler);
 
     //Qt Quick 默认用距离场渲染文本,在 1.2x 这类分数缩放的屏幕上边缘会发虚;
     //NativeTextRendering 直接按真实 devicePixelRatio 走 FreeType 光栅化,最锐利

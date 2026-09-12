@@ -20,8 +20,9 @@ add_executable(QML_FRPC ${SOURCES})
 set_target_properties(QML_FRPC PROPERTIES OUTPUT_NAME "QML_FRPC" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     WIN32_EXECUTABLE TRUE)
 
-#Theme.qml 是 QML 单例(必须在 qt_add_qml_module 之前设置)
+#Theme.qml / UiStyle.qml 是 QML 单例(必须在 qt_add_qml_module 之前设置)
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(qml/UiStyle.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 qt_add_qml_module(QML_FRPC
     URI QML_FRPC
@@ -33,7 +34,11 @@ qt_add_qml_module(QML_FRPC
         qml/TunnelCard.qml
         qml/AppIcon.qml
         qml/Theme.qml
+        qml/UiStyle.qml
         qml/WindowControls.qml
+        qml/modern/ModernBackground.qml
+        qml/modern/ModernLoginView.qml
+        qml/modern/ModernMainView.qml
     SOURCES
         src/ApiClient.cpp
         include/ApiClient.h
@@ -46,6 +51,16 @@ qt_add_qml_module(QML_FRPC
 target_link_libraries(QML_FRPC PRIVATE
     Qt6::Quick
     Qt6::Network
+)
+
+find_package(Qt6 REQUIRED COMPONENTS ShaderTools)
+
+#新版界面的 GLSL 着色器(构建期编译为 .qsb)
+qt_add_shaders(QML_FRPC "modern_shaders"
+    PREFIX "/"
+    FILES
+        qml/modern/shaders/flow.vert
+        qml/modern/shaders/flow.frag
 )
 
 if(MSVC)

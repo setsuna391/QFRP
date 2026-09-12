@@ -1315,6 +1315,52 @@ Item {
                             }
                         }
 
+                        // 新版界面入口
+                        Rectangle {
+                            Layout.fillWidth: true
+                            implicitHeight: newUiCol.implicitHeight + 32
+                            radius: 10
+                            color: cCard
+                            border.color: cBorder
+                            border.width: 1
+
+                            ColumnLayout {
+                                id: newUiCol
+                                anchors.fill: parent
+                                anchors.margins: 16
+                                spacing: 6
+
+                                Text { text: "界面风格"; color: cText; font.pixelSize: 14; font.bold: true }
+                                Text { text: "体验新版界面:流动渐变背景 + 玻璃拟态卡片"; color: cTextSec; font.pixelSize: 12 }
+
+                                Rectangle {
+                                    Layout.preferredWidth: 170
+                                    Layout.preferredHeight: 34
+                                    radius: 10
+                                    color: newUiArea.containsMouse ? cAccentHover : cAccent
+                                    Behavior on color { ColorAnimation { duration: 140 } }
+                                    scale: newUiArea.pressed ? 0.96 : 1.0
+                                    Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
+
+                                    Text {
+                                        anchors.centerIn: parent
+                                        text: "切换到新版界面"
+                                        color: "#ffffff"
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                    }
+
+                                    MouseArea {
+                                        id: newUiArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: UiStyle.modern = true
+                                    }
+                                }
+                            }
+                        }
+
                         // 退出登录按钮
                         Rectangle {
                             Layout.fillWidth: true

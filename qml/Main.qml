@@ -29,7 +29,7 @@ ApplicationWindow {
     StackView {
         id: stackView
         anchors.fill: parent
-        initialItem: apiClient.ready ? mainViewComponent : loginViewComponent
+        initialItem: apiClient.ready ? (UiStyle.modern ? modernMainComponent : mainViewComponent) : (UiStyle.modern ? modernLoginComponent : loginViewComponent)
         //启动时整体淡入,窗口内容不会突兀地直接出现
         opacity: 0.0
         Component.onCompleted: stackView.opacity = 1.0
@@ -55,14 +55,35 @@ ApplicationWindow {
         MainView {}
     }
 
+    Component {
+        id: modernLoginComponent
+        ModernLoginView {}
+    }
+
+    Component {
+        id: modernMainComponent
+        ModernMainView {}
+    }
+
+    function currentViewComponent() {
+        if (!apiClient.ready)
+            return UiStyle.modern ? modernLoginComponent : loginViewComponent
+        return UiStyle.modern ? modernMainComponent : mainViewComponent
+    }
+
     //登录状态变化时切换视图
     Connections {
         target: apiClient
         function onReadyChanged() {
-            if (apiClient.ready)
-                stackView.replace(mainViewComponent)
-            else
-                stackView.replace(loginViewComponent)
+            stackView.replace(currentViewComponent())
+        }
+    }
+
+    //界面风格切换(新版/经典)
+    Connections {
+        target: UiStyle
+        function onModernChanged() {
+            stackView.replace(currentViewComponent())
         }
     }
 }
