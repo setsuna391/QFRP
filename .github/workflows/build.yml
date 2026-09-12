@@ -96,14 +96,23 @@ jobs:
             libfuse2 file desktop-file-utils libwayland-dev libxkbcommon-dev
 
 
-      - name: 源码编译 qtwayland(官方 Qt 二进制不发布 Wayland 插件)
+      - name: 安装新版 wayland-protocols(qtwayland 6.8 构建要求)
         run: |
-          git clone --depth 1 --branch v6.8.2 https://github.com/qt/qtwayland.git
+          sudo apt-get install -y meson ninja-build
+          git clone --depth 1 --branch 1.37 https://gitlab.freedesktop.org/wayland/wayland-protocols.git
+          meson setup wp-build wayland-protocols -Dtests=false
+          sudo meson install -C wp-build
+
+      - name: 源码编译 qtwayland(官方 Qt 二进制不发布 Wayland 插件)
+        shell: bash
+        run: |
+          set -o pipefail
+          git clone --depth 1 --branch v6.8.2 https://github.com/qt/qtwayland.git 2>&1 | tee qtwayland-log.txt
           cmake -S qtwayland -B qtwayland-build \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_INSTALL_PREFIX="$(qmake -query QT_INSTALL_PREFIX)"
-          cmake --build qtwayland-build --parallel
-          cmake --install qtwayland-build
+            -DCMAKE_INSTALL_PREFIX="$(qmake -query QT_INSTALL_PREFIX)" 2>&1 | tee -a qtwayland-log.txt
+          cmake --build qtwayland-build --parallel 2>&1 | tee -a qtwayland-log.txt
+          cmake --install qtwayland-build 2>&1 | tee -a qtwayland-log.txt
           ls "$(qmake -query QT_INSTALL_PLUGINS)"/platforms/ | grep wayland
 
       - name: 配置
