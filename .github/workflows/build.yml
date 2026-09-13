@@ -167,7 +167,7 @@ jobs:
           ls -la QFRP-x86_64.AppImage
 
       - name: 失败时推送构建日志到仓库
-        if: failure() && (hashFiles('pkg-log.txt') != '' || hashFiles('build-log-linux.txt') != '')
+        if: failure() && (hashFiles('pkg-log.txt') != '' || hashFiles('build-log-linux.txt') != '' || hashFiles('qtwayland-log.txt') != '')
         run: |
           git config user.name "ci-bot"
           git config user.email "ci-bot@users.noreply.github.com"
