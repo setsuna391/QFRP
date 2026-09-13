@@ -643,8 +643,6 @@ Item {
                         border.color: cardArea.containsMouse ? Theme.cCardHoverBorder : cBorder
                         border.width: 1
                         Behavior on border.color { ColorAnimation { duration: 140 } }
-                        scale: cardArea.containsMouse ? 1.02 : 1.0
-                        Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
 
                         property var t: modelData
                         property bool running: root.runningIds.has(String(t.id))

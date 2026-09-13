@@ -381,8 +381,6 @@ Item {
                     border.color: cardArea.containsMouse ? "#66818cf8" : cGlassBorder
                     border.width: 1
                     Behavior on border.color { ColorAnimation { duration: 140 } }
-                    scale: cardArea.containsMouse ? 1.02 : 1.0
-                    Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
 
                     property var t: root.tunnels[index]
                     property bool running: root.runningIds.has(String(t.id))
@@ -603,8 +601,6 @@ Item {
                             border.color: nodeArea.containsMouse ? "#66818cf8" : cGlassBorder
                             border.width: 1
                             Behavior on border.color { ColorAnimation { duration: 140 } }
-                            scale: nodeArea.containsMouse ? 1.03 : 1.0
-                            Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
 
                             property var node: root.filteredNodes[index]
                             readonly property string tier: root.nodeTier(String(node.name || ""))
