@@ -106,7 +106,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev libegl1-mesa-dev libgles2-mesa-dev \
-            libfuse2 file desktop-file-utils libwayland-dev libxkbcommon-dev
+            libfuse2 file desktop-file-utils libwayland-dev libxkbcommon-dev libvulkan-dev
 
 
       - name: 安装新版 wayland-protocols(qtwayland 6.8 构建要求)
