@@ -130,6 +130,7 @@ jobs:
           }
           cmake -S qtwayland -B qtwayland-build \
             -DCMAKE_BUILD_TYPE=Release \
+            -DFEATURE_vulkan=OFF \
             -DCMAKE_INSTALL_PREFIX="$(qmake -query QT_INSTALL_PREFIX)" 2>&1 | tee -a qtwayland-log.txt
           cmake --build qtwayland-build --parallel 2>&1 | tee -a qtwayland-log.txt
           cmake --install qtwayland-build 2>&1 | tee -a qtwayland-log.txt

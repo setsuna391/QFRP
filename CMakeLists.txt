@@ -55,16 +55,21 @@ target_link_libraries(QML_FRPC PRIVATE
     Qt6::Network
 )
 
-find_package(Qt6 REQUIRED COMPONENTS ShaderTools)
-
-#新版界面的 GLSL 着色器(构建期编译为 .qsb)
-qt_add_shaders(QML_FRPC "modern_shaders"
-    PREFIX "/"
-    FILES
-        qml/modern/shaders/flow.vert
-        qml/modern/shaders/flow.frag
-        qml/modern/shaders/frost.frag
-)
+#ShaderTools 在部分平台的 Qt 二进制包中缺席(如 Windows msvc2022):
+#缺席时跳过着色器编译,新版界面背景自动回退为普通渐变
+find_package(Qt6 QUIET COMPONENTS ShaderTools)
+if(TARGET Qt6::ShaderTools)
+    #新版界面的 GLSL 着色器(构建期编译为 .qsb)
+    qt_add_shaders(QML_FRPC "modern_shaders"
+        PREFIX "/"
+        FILES
+            qml/modern/shaders/flow.vert
+            qml/modern/shaders/flow.frag
+            qml/modern/shaders/frost.frag
+    )
+else()
+    message(WARNING "Qt ShaderTools 不可用,液态玻璃/流动渐变着色器不编译(背景回退普通渐变)")
+endif()
 
 if(MSVC)
     #源码与中文字符串字面量均为 UTF-8 编码,MSVC 需要显式指定,否则按本地码页误读
