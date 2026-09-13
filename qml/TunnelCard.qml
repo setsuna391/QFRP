@@ -191,12 +191,9 @@ Rectangle {
                 }
             }
 
+            Ripple { id: runBtnAreaRipple; anchors.fill: parent }
             MouseArea {
-                id: runBtnArea
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                hoverEnabled: true
-                onClicked: card.toggleRequested(card.field("id", "").toString())
+                onClicked: runBtnAreaRipple.play(); card.toggleRequested(card.field("id", "").toString())
             }
         }
 
@@ -221,12 +218,9 @@ Rectangle {
                 height: 16
             }
 
+            Ripple { id: delAreaRipple; anchors.fill: parent }
             MouseArea {
-                id: delArea
-                anchors.fill: parent
-                cursorShape: Qt.PointingHandCursor
-                hoverEnabled: true
-                onClicked: card.deleteRequested(field("id", "").toString())
+                onClicked: delAreaRipple.play(); card.deleteRequested(field("id", "").toString())
             }
         }
     }

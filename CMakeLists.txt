@@ -33,6 +33,7 @@ qt_add_qml_module(QML_FRPC
         qml/MainView.qml
         qml/TunnelCard.qml
         qml/AppIcon.qml
+        qml/Ripple.qml
         qml/Theme.qml
         qml/UiStyle.qml
         qml/WindowControls.qml

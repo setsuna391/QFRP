@@ -276,12 +276,9 @@ Item {
                         }
                     }
 
+                    Ripple { id: classicAreaRipple; anchors.fill: parent }
                     MouseArea {
-                        id: classicArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: UiStyle.modern = false
+                        onClicked: classicAreaRipple.play(); UiStyle.modern = false
                     }
                 }
             }
@@ -333,12 +330,9 @@ Item {
                         Text { text: "新建"; color: "#ffffff"; font.pixelSize: 13; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                     }
 
+                    Ripple { id: createAreaRipple; anchors.fill: parent }
                     MouseArea {
-                        id: createArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: createPopup.open()
+                        onClicked: createAreaRipple.play(); createPopup.open()
                     }
                 }
 
@@ -437,12 +431,9 @@ Item {
                                 height: 14
                                 Layout.alignment: Qt.AlignVCenter
 
+                                Ripple { id: delAreaRipple; anchors.fill: parent }
                                 MouseArea {
-                                    id: delArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
+                                    onClicked: delAreaRipple.play(); {
                                         root.pendingDeleteId = String(t.id)
                                         deletePopup.open()
                                     }
@@ -499,12 +490,9 @@ Item {
                                 font.bold: true
                             }
 
+                            Ripple { id: runAreaRipple; anchors.fill: parent }
                             MouseArea {
-                                id: runArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: frpc.toggleTunnel(String(t.id))
+                                onClicked: runAreaRipple.play(); frpc.toggleTunnel(String(t.id))
                             }
                         }
                     }
@@ -562,12 +550,9 @@ Item {
                                     font.bold: on
                                 }
 
+                                Ripple { id: chipAreaRipple; anchors.fill: parent }
                                 MouseArea {
-                                    id: chipArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: root.nodeFilter = modelData.key
+                                    onClicked: chipAreaRipple.play(); root.nodeFilter = modelData.key
                                 }
                             }
                         }
@@ -780,12 +765,9 @@ Item {
                                     font.bold: true
                                 }
 
+                                Ripple { id: switchAreaRipple; anchors.fill: parent }
                                 MouseArea {
-                                    id: switchArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: UiStyle.modern = false
+                                    onClicked: switchAreaRipple.play(); UiStyle.modern = false
                                 }
                             }
                         }
@@ -822,12 +804,9 @@ Item {
                                     Behavior on color { ColorAnimation { duration: 140 } }
 
                                     Text { anchors.centerIn: parent; text: "选择图片"; color: cText; font.pixelSize: 12 }
+                                    Ripple { id: wpPickAreaRipple; anchors.fill: parent }
                                     MouseArea {
-                                        id: wpPickArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: wallpaperDialog.open()
+                                        onClicked: wpPickAreaRipple.play(); wallpaperDialog.open()
                                     }
                                 }
 
@@ -841,12 +820,9 @@ Item {
                                     border.width: 1
 
                                     Text { anchors.centerIn: parent; text: "恢复默认"; color: wpClearArea.containsMouse ? cError : cText; font.pixelSize: 12 }
+                                    Ripple { id: wpClearAreaRipple; anchors.fill: parent }
                                     MouseArea {
-                                        id: wpClearArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: appSettings.clearWallpaper()
+                                        onClicked: wpClearAreaRipple.play(); appSettings.clearWallpaper()
                                     }
                                 }
 
@@ -906,12 +882,9 @@ Item {
                                     Timer { id: qqReset; interval: 1500; onTriggered: qqValue.copied = false }
                                 }
 
+                                Ripple { id: qqAreaRipple; anchors.fill: parent }
                                 MouseArea {
-                                    id: qqArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
+                                    onClicked: qqAreaRipple.play(); {
                                         appSettings.copyText("1537403715")
                                         qqValue.copied = true
                                         qqReset.restart()
@@ -932,12 +905,9 @@ Item {
                                     font.underline: ghArea.containsMouse
                                 }
 
+                                Ripple { id: ghAreaRipple; anchors.fill: parent }
                                 MouseArea {
-                                    id: ghArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: Qt.openUrlExternally("https://github.com/setsuna391/QFRP")
+                                    onClicked: ghAreaRipple.play(); Qt.openUrlExternally("https://github.com/setsuna391/QFRP")
                                 }
                             }
 
