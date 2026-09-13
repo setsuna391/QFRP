@@ -46,15 +46,15 @@ void main()
     vec2 dcorner = abs(q) - (hsize - vec2(rad));
     float dist = length(max(dcorner, vec2(0.0))) + min(max(dcorner.x, dcorner.y), 0.0) - rad;
 
-    //液态折射:靠边缘处轻微向内偏折采样点(凸透镜边缘效应)
-    float rimGlow = 1.0 - smoothstep(0.0, rad * 0.8, -dist);
-    vec2 refract = normalize(q + vec2(0.0001)) * rimGlow * 0.014;
+    //液态折射:靠边缘处采样点向内偏折更明显(凸透镜边缘的"压缩"感)
+    float rim = 1.0 - smoothstep(0.0, rad * 0.8, -dist);
+    vec2 refract = normalize(q + vec2(0.0001)) * rim * rim * 0.045;
     vec2 suv = buv - refract;
 
-    //磨砂:9 点采样近似高斯模糊(采样的是实时流动的背景函数)
+    //磨砂:9 点采样近似高斯模糊(采样的是实时流动的背景+光带)
     vec3 acc = bgColor(suv, t) * 0.25;
-    float dx = uBlur * uAspect * 0.9;
-    float dy = uBlur;
+    float dx = uBlur * uAspect * 1.4;
+    float dy = uBlur * 1.4;
     acc += bgColor(suv + vec2( dx,  dy), t) * 0.0625;
     acc += bgColor(suv + vec2( dx, -dy), t) * 0.0625;
     acc += bgColor(suv + vec2(-dx,  dy), t) * 0.0625;
@@ -64,9 +64,16 @@ void main()
     acc += bgColor(suv + vec2(0.0,  dy), t) * 0.125;
     acc += bgColor(suv + vec2(0.0, -dy), t) * 0.125;
 
-    //玻璃质感:整体提白 + 边缘液态高光
-    vec3 col = mix(acc, vec3(1.0), 0.16);
-    col += rimGlow * uGlow * vec3(0.30);
+    //玻璃厚度:左上受光(亮)右下背光(暗),产生厚度感
+    vec3 col = mix(acc, vec3(1.0), 0.20);
+    col *= 1.0 - rim * 0.06;
+    col += rim * rim * uGlow * vec3(0.45);
+
+    //内圈暗线(玻璃厚度交界) + 外缘亮线(液态高光)
+    float inner = smoothstep(-rad * 0.16, -rad * 0.02, -dist) * (1.0 - smoothstep(-rad * 0.02, rad * 0.10, -dist));
+    col *= 1.0 - inner * 0.18;
+    float outer = smoothstep(-2.2, -0.6, -dist) * (1.0 - smoothstep(-0.6, 1.2, -dist));
+    col += outer * uGlow * vec3(0.28);
 
     //圆角裁切:角落外露出背景本体
     float alpha = 1.0 - smoothstep(-1.0, 0.6, dist);

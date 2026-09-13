@@ -30,5 +30,11 @@ void main()
     vec3 col = mix(cPurple, cPink, smoothstep(0.15, 0.85, flow));
     col = mix(col, mix(cBlue, cCyan, 0.5 + 0.5 * sin(w2 + w3)), 0.30 + 0.25 * sin(w1 * 0.8));
 
+    //斜向光带:给玻璃后面一点可被磨砂模糊的高频结构(液态玻璃的"内容")
+    float streak = sin((p.x * 6.5 - p.y * 2.8) + t * 0.9) * 0.5 + 0.5;
+    col += pow(streak, 3.0) * 0.085 * vec3(1.0, 0.98, 0.95);
+    float band = sin((p.y * 2.4 + p.x * 1.1) - t * 0.6) * 0.5 + 0.5;
+    col += pow(band, 2.5) * 0.05 * vec3(0.95, 1.0, 1.05);
+
     fragColor = vec4(col, qt_Opacity);
 }
