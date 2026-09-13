@@ -611,46 +611,219 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
 
-                // ----- 隧道页面 -----
-                ListView {
-                    id: tunnelsView
+                // ----- 隧道页面(方形卡片网格,隧道少时自动放大) -----
+                GridView {
+                    id: tunnelsGrid
                     visible: root.currentPage === "tunnels"
                     anchors.fill: parent
                     anchors.margins: 16
-                    model: root.tunnels
-                    spacing: 10
                     clip: true
+                    //≤2 条隧道时两列大卡片,更多时三列;高度同步调整
+                    cellWidth: root.tunnels.length <= 2 ? (width - 24) / 2 : (width - 36) / 3
+                    cellHeight: root.tunnels.length <= 2 ? 240 : 206
 
-                    //切换页面时:淡入 + 轻微缩放
-                    opacity: visible ? 1 : 0
-                    scale: visible ? 1 : 0.98
-                    Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
-                    Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
+                    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
-                    //数据加载/刷新时卡片渐显;按序号逐个延迟,形成级联入场
-                    //(延迟设上限,隧道很多时不至于等太久)
+                    //刷新时卡片级联入场
                     populate: Transition {
                         id: tunnelsPop
                         SequentialAnimation {
-                            PauseAnimation { duration: Math.min(tunnelsPop.ViewTransition.index * 25, 400) }
+                            PauseAnimation { duration: Math.min(tunnelsPop.ViewTransition.index * 40, 400) }
                             NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-                            NumberAnimation { property: "scale"; from: 0.96; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
+                            NumberAnimation { property: "scale"; from: 0.95; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
                         }
                     }
 
-                    ScrollBar.vertical: PinkScrollBar {}
+                    delegate: Rectangle {
+                        width: tunnelsGrid.cellWidth - 14
+                        height: tunnelsGrid.cellHeight - 14
+                        radius: 16
+                        color: cCard
+                        border.color: cardArea.containsMouse ? Theme.cCardHoverBorder : cBorder
+                        border.width: 1
+                        Behavior on border.color { ColorAnimation { duration: 140 } }
+                        scale: cardArea.containsMouse ? 1.02 : 1.0
+                        Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
 
-                    delegate: TunnelCard {
-                        width: tunnelsView.width
-                        tunnelData: modelData
-                        isRunning: root.runningIds.has(String(modelData.id))
-                        onDeleteRequested: function(tunnelId) {
-                            //删除会同步删掉服务器上的隧道且无法撤销,必须二次确认
-                            root.pendingDeleteId = tunnelId
-                            deletePopup.open()
+                        property var t: modelData
+                        property bool running: root.runningIds.has(String(t.id))
+                        //协议→标签色
+                        readonly property color tagColor: {
+                            var tt = String(t.type || "tcp").toLowerCase()
+                            if (tt === "udp") return "#3b82f6"
+                            if (tt === "http") return "#d97706"
+                            if (tt === "https") return "#1fae70"
+                            return Theme.cTcpTag
                         }
-                        onToggleRequested: function(tunnelId) {
-                            root.toggleRunning(tunnelId)
+
+                        MouseArea {
+                            id: cardArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                        }
+
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 16
+                            spacing: 8
+
+                            // 顶行: 状态点(含呼吸光圈) + 协议标签 + 删除
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 8
+
+                                Item {
+                                    width: 10; height: 10
+                                    Layout.alignment: Qt.AlignVCenter
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        radius: 5
+                                        color: running ? cSuccess : Theme.cDotOff
+                                        Behavior on color { ColorAnimation { duration: 200 } }
+
+                                        //运行时向外扩散的呼吸光圈
+                                        Rectangle {
+                                            visible: running
+                                            anchors.centerIn: parent
+                                            width: 10; height: 10; radius: 5
+                                            color: "transparent"
+                                            border.color: cSuccess
+                                            border.width: 1
+                                            NumberAnimation on scale {
+                                                running: running
+                                                loops: Animation.Infinite
+                                                from: 1; to: 2.4
+                                                duration: 1200
+                                                easing.type: Easing.OutQuad
+                                            }
+                                            NumberAnimation on opacity {
+                                                running: running
+                                                loops: Animation.Infinite
+                                                from: 0.7; to: 0
+                                                duration: 1200
+                                                easing.type: Easing.OutQuad
+                                            }
+                                        }
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.preferredHeight: 20
+                                    Layout.preferredWidth: typeLabel.implicitWidth + 14
+                                    radius: 10
+                                    color: "transparent"
+                                    border.color: parent.parent.parent.tagColor
+                                    border.width: 1
+
+                                    Text {
+                                        id: typeLabel
+                                        anchors.centerIn: parent
+                                        text: String(t.type || "tcp").toUpperCase()
+                                        color: parent.parent.parent.tagColor
+                                        font.pixelSize: 10
+                                        font.bold: true
+                                    }
+                                }
+
+                                Item { Layout.fillWidth: true }
+
+                                Item {
+                                    Layout.preferredWidth: 20
+                                    Layout.preferredHeight: 20
+
+                                    AppIcon {
+                                        anchors.centerIn: parent
+                                        iconType: "delete"
+                                        iconColor: delArea.containsMouse ? cError : cTextMuted
+                                        width: 15
+                                        height: 15
+                                    }
+
+                                    MouseArea {
+                                        id: delArea
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            root.pendingDeleteId = String(t.id)
+                                            deletePopup.open()
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 名称
+                            Text {
+                                Layout.fillWidth: true
+                                text: t.name || String(t.id)
+                                color: cText
+                                font.pixelSize: 16
+                                font.bold: true
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: "节点 #" + (t.node || "?") + "   ·   ID " + (t.id || "?")
+                                color: cTextSec
+                                font.pixelSize: 12
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                Layout.fillWidth: true
+                                text: (t.local_ip || "127.0.0.1") + ":" + (t.local_port || "?") + "  →  :" + (t.remote || "?")
+                                color: cTextSec
+                                font.pixelSize: 12
+                                elide: Text.ElideRight
+                            }
+
+                            Item { Layout.fillHeight: true }
+
+                            // 启停按钮(通栏)
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 38
+                                radius: 10
+                                color: runArea.containsMouse
+                                       ? (running ? Theme.cErrorBg : Theme.cSuccessBgHover)
+                                       : (running ? Theme.cInputBg : Theme.cSuccessBg)
+                                border.color: running ? cError : cSuccess
+                                border.width: 1
+                                Behavior on color { ColorAnimation { duration: 140 } }
+                                scale: runArea.pressed ? 0.97 : 1.0
+                                Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
+
+                                Row {
+                                    anchors.centerIn: parent
+                                    spacing: 6
+
+                                    AppIcon {
+                                        iconType: running ? "stop" : "play"
+                                        iconColor: running ? cError : cSuccess
+                                        width: 13
+                                        height: 13
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+
+                                    Text {
+                                        text: running ? "停止" : "启动"
+                                        color: running ? cError : cSuccess
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                        anchors.verticalCenter: parent.verticalCenter
+                                    }
+                                }
+
+                                MouseArea {
+                                    id: runArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: frpc.toggleTunnel(String(t.id))
+                                }
+                            }
                         }
                     }
 
