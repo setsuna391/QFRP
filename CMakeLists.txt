@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16.0)
-project(QML_FRPC VERSION 0.1.0 LANGUAGES C CXX)
+project(QML_FRPC VERSION 0.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -83,7 +83,11 @@ endif()
 set(FRPC_BUNDLE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/third_party")
 set(FRPC_BUNDLED "${FRPC_BUNDLE_DIR}/frpc")
 
-if(NOT EXISTS "${FRPC_BUNDLED}")
+#构建期下载可关(如 CI 环境访问国内 CDN 不稳定): -DQFRP_BUNDLE_FRPC=OFF
+#关闭后由应用运行时自动下载 frpc
+option(QFRP_BUNDLE_FRPC "构建时下载并内嵌 frpc" ON)
+
+if(QFRP_BUNDLE_FRPC AND NOT EXISTS "${FRPC_BUNDLED}")
     set(FRPC_TARGET_ARCH "linux_amd64")
     set(FRPC_DL_EXT "")
     if(WIN32)

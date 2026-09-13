@@ -27,7 +27,7 @@ jobs:
       - name: 配置
         shell: pwsh
         run: |
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release 2>&1 | Tee-Object -FilePath cmake-log.txt
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DQFRP_BUNDLE_FRPC=OFF 2>&1 | Tee-Object -FilePath cmake-log.txt
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: 编译
@@ -136,7 +136,11 @@ jobs:
           ls "$(qmake -query QT_INSTALL_PLUGINS)"/platforms/ | grep wayland
 
       - name: 配置
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+        shell: bash
+        run: |
+          set -o pipefail
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr -DQFRP_BUNDLE_FRPC=OFF 2>&1 | tee cmake-log.txt
+          test ${PIPESTATUS[0]} -eq 0
 
       - name: 编译
         shell: bash
@@ -166,7 +170,7 @@ jobs:
           ls -la QFRP-x86_64.AppImage
 
       - name: 失败时推送构建日志到仓库
-        if: failure() && (hashFiles('pkg-log.txt') != '' || hashFiles('build-log-linux.txt') != '' || hashFiles('qtwayland-log.txt') != '')
+        if: failure()
         run: |
           git config user.name "ci-bot"
           git config user.email "ci-bot@users.noreply.github.com"
@@ -174,6 +178,18 @@ jobs:
           git commit -m "CI Linux 构建日志 [skip ci]" || true
           #tag 触发的运行处于游离 HEAD,必须显式指明推到 main
           git push origin HEAD:main
+
+      - name: 上传诊断日志(失败时)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-logs-linux
+          path: |
+            cmake-log.txt
+            qtwayland-log.txt
+            pkg-log.txt
+            build-log-linux.txt
+          if-no-files-found: ignore
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
