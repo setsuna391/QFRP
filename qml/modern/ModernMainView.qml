@@ -322,7 +322,8 @@ Item {
                     color: createArea.containsMouse ? cAccentHover : cAccent
                     Behavior on color { ColorAnimation { duration: 140 } }
                     scale: createArea.pressed ? 0.95 : 1.0
-                    Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
+                    //松开时弹簧回弹,苹果式的"液态"手感
+                    Behavior on scale { SpringAnimation { spring: 4; damping: 0.3; epsilon: 0.006 } }
 
                     Row {
                         anchors.centerIn: parent
@@ -965,7 +966,17 @@ Item {
         modal: true
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle { color: "#f7f8fc"; radius: 18; border.color: cGlassBorder; border.width: 1 }
+        background: Item {
+            GlassPanel { anchors.fill: parent; bgItem: modernBg; radiusPx: 18; blurPx: 14; glow: 0.5 }
+
+            Rectangle {
+                anchors.fill: parent
+                radius: 18
+                color: "transparent"
+                border.color: cGlassBorder
+                border.width: 1
+            }
+        }
 
         enter: Transition {
             NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
@@ -1030,7 +1041,17 @@ Item {
         modal: true
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle { color: "#f7f8fc"; radius: 18; border.color: cGlassBorder; border.width: 1 }
+        background: Item {
+            GlassPanel { anchors.fill: parent; bgItem: modernBg; radiusPx: 18; blurPx: 14; glow: 0.5 }
+
+            Rectangle {
+                anchors.fill: parent
+                radius: 18
+                color: "transparent"
+                border.color: cGlassBorder
+                border.width: 1
+            }
+        }
 
         enter: Transition {
             NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }

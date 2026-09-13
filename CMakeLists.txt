@@ -39,6 +39,7 @@ qt_add_qml_module(QML_FRPC
         qml/modern/ModernBackground.qml
         qml/modern/ModernLoginView.qml
         qml/modern/ModernMainView.qml
+        qml/modern/GlassPanel.qml
     SOURCES
         src/ApiClient.cpp
         include/ApiClient.h
@@ -61,6 +62,7 @@ qt_add_shaders(QML_FRPC "modern_shaders"
     FILES
         qml/modern/shaders/flow.vert
         qml/modern/shaders/flow.frag
+        qml/modern/shaders/frost.frag
 )
 
 if(MSVC)

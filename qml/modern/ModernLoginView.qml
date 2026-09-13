@@ -161,7 +161,7 @@ Item {
                 color: area.containsMouse ? "#5b52ea" : "#4f46e5"
                 Behavior on color { ColorAnimation { duration: 150 } }
                 scale: area.pressed ? 0.97 : 1.0
-                Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+                Behavior on scale { SpringAnimation { spring: 4; damping: 0.3; epsilon: 0.006 } }
 
                 Text {
                     anchors.centerIn: parent
