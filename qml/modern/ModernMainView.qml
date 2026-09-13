@@ -350,104 +350,147 @@ Item {
                 }
             }
 
-            // ===== 隧道页 =====
-            ListView {
-                id: tunnelsView
+            // ===== 隧道页(方形卡片网格) =====
+            GridView {
+                id: tunnelsGrid
                 visible: root.currentPage === "tunnels"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 model: root.tunnels.length
-                spacing: 10
                 clip: true
+                cellWidth: 216
+                cellHeight: 196
 
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
+                //刷新时卡片级联入场
+                populate: Transition {
+                    id: tunnelsPop
+                    SequentialAnimation {
+                        PauseAnimation { duration: Math.min(tunnelsPop.ViewTransition.index * 30, 360) }
+                        NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 200; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
+                        NumberAnimation { property: "scale"; from: 0.95; to: 1; duration: 200; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
+                    }
+                }
+
                 delegate: Rectangle {
-                    width: tunnelsView.width
-                    height: 72
-                    radius: 16
+                    width: tunnelsGrid.cellWidth - 12
+                    height: tunnelsGrid.cellHeight - 12
+                    anchors.centerIn: parent
+                    radius: 18
                     color: cGlass
                     border.color: cardArea.containsMouse ? "#66818cf8" : cGlassBorder
                     border.width: 1
                     Behavior on border.color { ColorAnimation { duration: 140 } }
+                    scale: cardArea.containsMouse ? 1.02 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
 
                     property var t: root.tunnels[index]
                     property bool running: root.runningIds.has(String(t.id))
 
-                    //卡片级悬停层:只做 hover 检测,声明在内容之前(下层),不挡按钮
+                    //卡片级悬停层:声明在内容之前(下层),不挡按钮
                     MouseArea {
                         id: cardArea
                         anchors.fill: parent
                         hoverEnabled: true
                     }
 
-                    RowLayout {
+                    ColumnLayout {
                         anchors.fill: parent
-                        anchors.leftMargin: 18
-                        anchors.rightMargin: 14
-                        spacing: 12
+                        anchors.margins: 14
+                        spacing: 6
 
-                        Rectangle {
-                            width: 9; height: 9; radius: 4.5
-                            Layout.alignment: Qt.AlignVCenter
-                            color: running ? cSuccess : cTextMuted
-                            Behavior on color { ColorAnimation { duration: 200 } }
-                        }
-
-                        ColumnLayout {
+                        // 顶行: 状态点 + 协议 + 删除
+                        RowLayout {
                             Layout.fillWidth: true
-                            spacing: 3
+                            spacing: 6
 
-                            RowLayout {
-                                spacing: 8
+                            Rectangle {
+                                width: 9; height: 9; radius: 4.5
+                                Layout.alignment: Qt.AlignVCenter
+                                color: running ? cSuccess : cTextMuted
+                                Behavior on color { ColorAnimation { duration: 200 } }
+                            }
+
+                            Rectangle {
+                                Layout.preferredHeight: 18
+                                Layout.preferredWidth: typeLabel.implicitWidth + 12
+                                radius: 9
+                                color: cAccentSoft
+                                border.color: "#55818cf8"
+                                border.width: 1
 
                                 Text {
-                                    text: t.name || String(t.id)
-                                    color: cText
-                                    font.pixelSize: 15
+                                    id: typeLabel
+                                    anchors.centerIn: parent
+                                    text: String(t.type || "tcp").toUpperCase()
+                                    color: cAccent
+                                    font.pixelSize: 9
                                     font.bold: true
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
                                 }
+                            }
 
-                                Rectangle {
-                                    Layout.preferredHeight: 20
-                                    Layout.preferredWidth: typeLabel.implicitWidth + 14
-                                    radius: 10
-                                    color: cAccentSoft
-                                    border.color: "#55818cf8"
-                                    border.width: 1
+                            Item { Layout.fillWidth: true }
 
-                                    Text {
-                                        id: typeLabel
-                                        anchors.centerIn: parent
-                                        text: String(t.type || "tcp").toUpperCase()
-                                        color: cAccent
-                                        font.pixelSize: 10
-                                        font.bold: true
+                            AppIcon {
+                                iconType: "delete"
+                                iconColor: delArea.containsMouse ? cError : cTextMuted
+                                width: 14
+                                height: 14
+                                Layout.alignment: Qt.AlignVCenter
+
+                                MouseArea {
+                                    id: delArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: {
+                                        root.pendingDeleteId = String(t.id)
+                                        deletePopup.open()
                                     }
                                 }
                             }
-
-                            Text {
-                                Layout.fillWidth: true
-                                text: (t.local_ip || "127.0.0.1") + ":" + (t.local_port || "?") + "  →  :" + (t.remote || "?") + "   ·   ID " + (t.id || "?")
-                                color: cTextSec
-                                font.pixelSize: 12
-                                elide: Text.ElideRight
-                            }
                         }
 
+                        // 名称
+                        Text {
+                            Layout.fillWidth: true
+                            text: t.name || String(t.id)
+                            color: cText
+                            font.pixelSize: 15
+                            font.bold: true
+                            elide: Text.ElideRight
+                        }
+
+                        // 端口信息(两行)
+                        Text {
+                            Layout.fillWidth: true
+                            text: (t.local_ip || "127.0.0.1") + ":" + (t.local_port || "?")
+                            color: cTextSec
+                            font.pixelSize: 11
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: "→ :" + (t.remote || "?") + "   ·   ID " + (t.id || "?")
+                            color: cTextMuted
+                            font.pixelSize: 11
+                            elide: Text.ElideRight
+                        }
+
+                        Item { Layout.fillHeight: true }
+
+                        // 启停按钮(通栏)
                         Rectangle {
-                            Layout.preferredWidth: 68
+                            Layout.fillWidth: true
                             Layout.preferredHeight: 32
-                            Layout.alignment: Qt.AlignVCenter
                             radius: 10
                             color: runArea.containsMouse
                                    ? (running ? "#33ef4444" : "#3310b981")
                                    : (running ? "#22ef4444" : "#2210b981")
                             Behavior on color { ColorAnimation { duration: 140 } }
-                            scale: runArea.pressed ? 0.95 : (runArea.containsMouse ? 1.04 : 1.0)
+                            scale: runArea.pressed ? 0.97 : 1.0
                             Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
 
                             Text {
@@ -466,25 +509,6 @@ Item {
                                 onClicked: frpc.toggleTunnel(String(t.id))
                             }
                         }
-
-                        AppIcon {
-                            iconType: "delete"
-                            iconColor: delArea.containsMouse ? cError : cTextMuted
-                            width: 16
-                            height: 16
-                            Layout.alignment: Qt.AlignVCenter
-
-                            MouseArea {
-                                id: delArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    root.pendingDeleteId = String(t.id)
-                                    deletePopup.open()
-                                }
-                            }
-                        }
                     }
                 }
 
@@ -496,7 +520,6 @@ Item {
                     font.pixelSize: 13
                 }
             }
-
             // ===== 节点页(小卡片网格 + 档位分类) =====
             Item {
                 visible: root.currentPage === "nodes"
