@@ -26,7 +26,10 @@ jobs:
           cache: true
 
       - name: 配置
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+        shell: pwsh
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release 2>&1 | Tee-Object -FilePath cmake-log.txt
+          if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: 编译
         shell: pwsh
@@ -40,9 +43,10 @@ jobs:
         run: |
           git config user.name "ci-bot"
           git config user.email "ci-bot@users.noreply.github.com"
-          git add build-log.txt
-          git commit -m "CI 构建日志 [skip ci]"
-          git push
+          git add cmake-log.txt build-log.txt 2>$null
+          git commit -m "CI 日志 [skip ci]" 2>$null
+          #tag 触发的运行处于游离 HEAD,必须显式指明推到 main
+          git push origin HEAD:main
 
       - name: 部署运行时并打包
         shell: pwsh
@@ -157,7 +161,7 @@ jobs:
         run: |
           git config user.name "ci-bot"
           git config user.email "ci-bot@users.noreply.github.com"
-          git add pkg-log.txt build-log-linux.txt 2>/dev/null || true
+          git add pkg-log.txt build-log-linux.txt qtwayland-log.txt 2>/dev/null || true
           git commit -m "CI Linux 构建日志 [skip ci]" || true
           #tag 触发的运行处于游离 HEAD,必须显式指明推到 main
           git push origin HEAD:main
