@@ -37,13 +37,14 @@ jobs:
           cmake --build build --config Release --parallel 2>&1 | Tee-Object -FilePath build-log.txt
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
-      - name: 失败时把日志挂到 Release
+      - name: 失败时把日志挂到 ci-logs
         if: failure()
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "$env:GITHUB_REF_NAME" cmake-log.txt build-log.txt --clobber 2>$null
+          gh release view ci-logs --repo $env:GITHUB_REPOSITORY 2>$null || gh release create ci-logs --repo $env:GITHUB_REPOSITORY --title "CI 诊断日志" --notes "构建失败时自动上传的日志"
+          gh release upload ci-logs cmake-log.txt build-log.txt --clobber --repo $env:GITHUB_REPOSITORY
 
       - name: 上传诊断日志(失败时)
         if: failure()
@@ -168,13 +169,14 @@ jobs:
           for f in QFRP-*-x86_64.AppImage; do mv "$f" QFRP-x86_64.AppImage; done
           ls -la QFRP-x86_64.AppImage
 
-      - name: 失败时把日志挂到 Release
+      - name: 失败时把日志挂到 ci-logs
         if: failure()
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release upload "${GITHUB_REF_NAME}" qtwayland-log.txt cmake-log.txt build-log-linux.txt pkg-log.txt --clobber 2>/dev/null || true
+          gh release view ci-logs --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || gh release create ci-logs --repo "$GITHUB_REPOSITORY" --title "CI 诊断日志" --notes "构建失败时自动上传的日志"
+          gh release upload ci-logs qtwayland-log.txt cmake-log.txt build-log-linux.txt pkg-log.txt --clobber --repo "$GITHUB_REPOSITORY"
 
       - name: 上传诊断日志(失败时)
         if: failure()
