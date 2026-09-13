@@ -617,6 +617,7 @@ Item {
                     visible: root.currentPage === "tunnels"
                     anchors.fill: parent
                     anchors.margins: 16
+                    model: root.tunnels
                     clip: true
                     //≤2 条隧道时两列大卡片,更多时三列;高度同步调整
                     cellWidth: root.tunnels.length <= 2 ? (width - 24) / 2 : (width - 36) / 3
