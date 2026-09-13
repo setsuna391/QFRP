@@ -6,8 +6,8 @@ import QtQuick
 Rectangle {
     id: ripple
 
-    property color rippleColor: "#1f7a7a85"
-    property real maxScale: 1.3
+    property color rippleColor: "#669090a8"
+    property real maxScale: 1.35
 
     anchors.fill: parent
     radius: width / 2
@@ -24,7 +24,7 @@ Rectangle {
         id: rippleAnim
         PropertyAction { target: ripple; property: "visible"; value: true }
         ParallelAnimation {
-            NumberAnimation { target: ripple; property: "opacity"; from: 0.7; to: 0; duration: 400; easing.type: Easing.OutQuad }
+            NumberAnimation { target: ripple; property: "opacity"; from: 0.9; to: 0; duration: 420; easing.type: Easing.OutQuad }
             NumberAnimation { target: ripple; property: "scale"; from: 0.3; to: ripple.maxScale; duration: 400; easing.type: Easing.OutQuad }
         }
         PropertyAction { target: ripple; property: "visible"; value: false }
