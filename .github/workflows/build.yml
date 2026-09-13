@@ -3,6 +3,7 @@ name: 构建 (Windows / Linux)
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     tags: ['v*']
 
 permissions:
