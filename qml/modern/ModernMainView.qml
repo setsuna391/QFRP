@@ -14,6 +14,7 @@ Item {
     property var nodes: []
     property var runningIds: new Set()
     property string currentPage: "tunnels"
+    property string nodeFilter: "all"
 
     //新版界面配色(独立于经典主题系统)
     readonly property color cGlass: "#ccffffff"
@@ -33,6 +34,28 @@ Item {
         for (var i = 0; i < ids.length; i++)
             s.add(String(ids[i]))
         runningIds = s
+    }
+
+    //档位从节点名判断: 含 VIP → VIP 专属, 含 PLUS → PLUS, 其余普通
+    function nodeTier(name) {
+        var n = String(name)
+        if (n.indexOf("VIP") >= 0) return "VIP"
+        if (n.indexOf("PLUS") >= 0) return "PLUS"
+        return ""
+    }
+
+    readonly property var filteredNodes: {
+        var out = []
+        for (var i = 0; i < nodes.length; i++) {
+            var n = nodes[i]
+            var tier = nodeTier(String(n.name || ""))
+            if (nodeFilter === "all"
+                || (nodeFilter === "vip" && tier === "VIP")
+                || (nodeFilter === "plus" && tier === "PLUS")
+                || (nodeFilter === "normal" && tier === ""))
+                out.push(n)
+        }
+        return out
     }
 
     function tunnelName(id) {
@@ -138,6 +161,7 @@ Item {
                 Repeater {
                     model: [
                         { name: "tunnels", label: "隧道", icon: "tunnel" },
+                        { name: "nodes", label: "节点", icon: "node" },
                         { name: "log", label: "日志", icon: "log" },
                         { name: "settings", label: "设置", icon: "settings" }
                     ]
@@ -265,6 +289,7 @@ Item {
 
                 Text {
                     text: root.currentPage === "tunnels" ? "隧道管理"
+                        : root.currentPage === "nodes" ? "节点列表"
                         : root.currentPage === "log" ? "运行日志" : "设置"
                     color: cText
                     font.family: "Noto Serif CJK SC"
@@ -455,6 +480,168 @@ Item {
                     text: "还没有隧道,点右上角「新建」创建第一个"
                     color: cTextMuted
                     font.pixelSize: 13
+                }
+            }
+
+            // ===== 节点页(小卡片网格 + 档位分类) =====
+            Item {
+                visible: root.currentPage === "nodes"
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 10
+
+                    // 档位筛选
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 6
+
+                        Repeater {
+                            model: [
+                                { key: "all", label: "全部" },
+                                { key: "vip", label: "VIP 专属" },
+                                { key: "plus", label: "PLUS" },
+                                { key: "normal", label: "普通" }
+                            ]
+
+                            delegate: Rectangle {
+                                Layout.preferredHeight: 30
+                                Layout.preferredWidth: chipLabel.implicitWidth + 24
+                                radius: 15
+                                readonly property bool on: root.nodeFilter === modelData.key
+                                color: on ? cAccent : "#99ffffff"
+                                border.color: on ? cAccent : cGlassBorder
+                                border.width: 1
+                                Behavior on color { ColorAnimation { duration: 140 } }
+                                scale: chipArea.pressed ? 0.94 : (chipArea.containsMouse ? 1.05 : 1.0)
+                                Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
+
+                                Text {
+                                    id: chipLabel
+                                    anchors.centerIn: parent
+                                    text: modelData.label
+                                    color: on ? "#ffffff" : cTextSec
+                                    font.pixelSize: 12
+                                    font.bold: on
+                                }
+
+                                MouseArea {
+                                    id: chipArea
+                                    anchors.fill: parent
+                                    hoverEnabled: true
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: root.nodeFilter = modelData.key
+                                }
+                            }
+                        }
+
+                        Item { Layout.fillWidth: true }
+
+                        Text {
+                            text: root.filteredNodes.length + " 个节点"
+                            color: cTextMuted
+                            font.pixelSize: 12
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                    }
+
+                    // 节点小卡片网格
+                    GridView {
+                        id: nodesGrid
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        cellWidth: 200
+                        cellHeight: 88
+                        model: root.filteredNodes.length
+
+                        ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+                        delegate: Rectangle {
+                            width: nodesGrid.cellWidth - 10
+                            height: nodesGrid.cellHeight - 10
+                            anchors.centerIn: parent
+                            radius: 14
+                            color: cGlass
+                            border.color: nodeArea.containsMouse ? "#66818cf8" : cGlassBorder
+                            border.width: 1
+                            Behavior on border.color { ColorAnimation { duration: 140 } }
+                            scale: nodeArea.containsMouse ? 1.03 : 1.0
+                            Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
+
+                            property var node: root.filteredNodes[index]
+                            readonly property string tier: root.nodeTier(String(node.name || ""))
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                anchors.margins: 12
+                                spacing: 4
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 6
+
+                                    Text {
+                                        text: node.name || ("节点 #" + (node.id || "?"))
+                                        color: cText
+                                        font.pixelSize: 12
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                        Layout.fillWidth: true
+                                    }
+
+                                    Rectangle {
+                                        visible: tier !== ""
+                                        Layout.preferredWidth: tierLabel.implicitWidth + 10
+                                        Layout.preferredHeight: 16
+                                        radius: 8
+                                        color: tier === "VIP" ? "#33fbbf24" : "#33818cf8"
+                                        border.color: tier === "VIP" ? "#fbbf24" : "#818cf8"
+                                        border.width: 1
+
+                                        Text {
+                                            id: tierLabel
+                                            anchors.centerIn: parent
+                                            text: tier
+                                            color: parent.border.color
+                                            font.pixelSize: 9
+                                            font.bold: true
+                                        }
+                                    }
+                                }
+
+                                Text {
+                                    text: node.host || node.description || "—"
+                                    color: cTextSec
+                                    font.pixelSize: 10
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                Text {
+                                    text: "ID " + (node.id || "?")
+                                    color: cTextMuted
+                                    font.pixelSize: 10
+                                }
+                            }
+
+                            MouseArea {
+                                id: nodeArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                            }
+                        }
+
+                        Text {
+                            anchors.centerIn: parent
+                            visible: root.filteredNodes.length === 0
+                            text: "该分类下暂无节点"
+                            color: cTextMuted
+                            font.pixelSize: 13
+                        }
+                    }
                 }
             }
 
@@ -854,10 +1041,100 @@ Item {
                     model: root.nodes
                     textRole: "name"
                     valueRole: "id"
-                    background: Rectangle { radius: 10; color: "#ffffff"; border.color: cBorder2; border.width: 1 }
+
+                    background: Rectangle {
+                        radius: 10; color: "#ffffff"
+                        border.color: createNode.popup.visible ? cAccent : cBorder2; border.width: 1
+                        Behavior on border.color { ColorAnimation { duration: 140 } }
+                    }
                     contentItem: Text {
                         text: createNode.displayText || "请选择节点"
-                        color: cText; font.pixelSize: 13; verticalAlignment: Text.AlignVCenter; leftPadding: 10
+                        color: cText; font.pixelSize: 13
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: 10; rightPadding: 26
+                        elide: Text.ElideRight
+                    }
+                    indicator: Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.right: parent.right; anchors.rightMargin: 10
+                        text: createNode.popup.visible ? "▴" : "▾"
+                        color: cTextSec; font.pixelSize: 12
+                    }
+
+                    //玻璃风弹窗(默认是深色系统样式,与浅色界面不协调)
+                    popup: Popup {
+                        y: createNode.height - 1
+                        width: createNode.width
+                        padding: 6
+                        background: Rectangle {
+                            color: "#ffffff"; radius: 12
+                            border.color: cGlassBorder; border.width: 1
+                        }
+                        contentItem: ListView {
+                            clip: true
+                            implicitHeight: Math.min(contentHeight, 300)
+                            model: createNode.delegateModel
+                            currentIndex: createNode.highlightedIndex
+                            spacing: 2
+                            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+                        }
+                    }
+
+                    delegate: ItemDelegate {
+                        id: nodeDelegate
+                        width: createNode.width - 10
+                        height: 42
+                        highlighted: createNode.highlightedIndex === index
+
+                        contentItem: RowLayout {
+                            spacing: 8
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 0
+
+                                Text {
+                                    text: (modelData && modelData.name) || ("节点 #" + ((modelData && modelData.id) || "?"))
+                                    color: cText
+                                    font.pixelSize: 12
+                                    font.bold: nodeDelegate.hovered || nodeDelegate.highlighted
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                }
+
+                                Text {
+                                    text: (modelData && (modelData.host || modelData.description)) || ""
+                                    color: cTextMuted
+                                    font.pixelSize: 10
+                                    elide: Text.ElideRight
+                                    Layout.fillWidth: true
+                                    visible: text !== ""
+                                }
+                            }
+
+                            Rectangle {
+                                readonly property string tier: root.nodeTier(String((modelData && modelData.name) || ""))
+                                visible: tier !== ""
+                                width: tierLabel.implicitWidth + 10; height: 16; radius: 8
+                                color: tier === "VIP" ? "#33fbbf24" : "#33818cf8"
+                                border.color: tier === "VIP" ? "#fbbf24" : "#818cf8"
+                                border.width: 1
+
+                                Text {
+                                    id: tierLabel
+                                    anchors.centerIn: parent
+                                    text: parent.tier
+                                    color: parent.border.color
+                                    font.pixelSize: 9
+                                    font.bold: true
+                                }
+                            }
+                        }
+
+                        background: Rectangle {
+                            radius: 8
+                            color: nodeDelegate.highlighted ? cAccentSoft : nodeDelegate.hovered ? "#f4f5fb" : "transparent"
+                        }
                     }
                 }
             }
