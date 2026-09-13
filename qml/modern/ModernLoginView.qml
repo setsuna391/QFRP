@@ -173,7 +173,11 @@ Item {
 
                 Ripple { id: areaRipple; anchors.fill: parent }
                 MouseArea {
-                    onClicked: areaRipple.play(); root.tryLogin()
+                    id: area
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: { areaRipple.play(); root.tryLogin() }
                 }
             }
 

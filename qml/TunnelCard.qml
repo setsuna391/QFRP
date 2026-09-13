@@ -193,7 +193,11 @@ Rectangle {
 
             Ripple { id: runBtnAreaRipple; anchors.fill: parent }
             MouseArea {
-                onClicked: runBtnAreaRipple.play(); card.toggleRequested(card.field("id", "").toString())
+                id: runBtnArea
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                hoverEnabled: true
+                onClicked: { runBtnAreaRipple.play(); card.toggleRequested(card.field("id", "").toString()) }
             }
         }
 
@@ -220,7 +224,11 @@ Rectangle {
 
             Ripple { id: delAreaRipple; anchors.fill: parent }
             MouseArea {
-                onClicked: delAreaRipple.play(); card.deleteRequested(field("id", "").toString())
+                id: delArea
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                hoverEnabled: true
+                onClicked: { delAreaRipple.play(); card.deleteRequested(field("id", "").toString()) }
             }
         }
     }
