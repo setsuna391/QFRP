@@ -23,7 +23,7 @@ jobs:
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2022_64'
-          cache: true
+          cache: false
 
       - name: 配置
         shell: pwsh
@@ -47,6 +47,16 @@ jobs:
           git commit -m "CI 日志 [skip ci]" 2>$null
           #tag 触发的运行处于游离 HEAD,必须显式指明推到 main
           git push origin HEAD:main
+
+      - name: 上传诊断日志(失败时)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-logs-windows
+          path: |
+            cmake-log.txt
+            build-log.txt
+          if-no-files-found: ignore
 
       - name: 部署运行时并打包
         shell: pwsh
