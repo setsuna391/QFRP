@@ -72,11 +72,25 @@ Item {
             logModel.remove(0)
     }
 
+    //支持 --page=nodes|tunnels|log|settings 直达页面、--create 启动时打开新建弹窗
     Component.onCompleted: {
+        var args = Qt.application.arguments || []
+        for (var i = 0; i < args.length; i++) {
+            if (args[i].indexOf("--page=") === 0)
+                currentPage = args[i].substring(7)
+            if (args[i] === "--create")
+                createTimer.start()
+        }
         apiClient.getTunnels()
         apiClient.getNodes()
         addLog("新版界面已加载", "info")
         syncRunning()
+    }
+
+    Timer {
+        id: createTimer
+        interval: 400
+        onTriggered: createPopup.open()
     }
 
     Connections {
