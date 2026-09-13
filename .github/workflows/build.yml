@@ -36,16 +36,13 @@ jobs:
           cmake --build build --config Release --parallel 2>&1 | Tee-Object -FilePath build-log.txt
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
-      - name: 失败时推送构建日志到仓库
+      - name: 失败时把日志挂到 Release
         if: failure()
         shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "ci-bot"
-          git config user.email "ci-bot@users.noreply.github.com"
-          git add cmake-log.txt build-log.txt 2>$null
-          git commit -m "CI 日志 [skip ci]" 2>$null
-          #tag 触发的运行处于游离 HEAD,必须显式指明推到 main
-          git push origin HEAD:main
+          gh release upload "$env:GITHUB_REF_NAME" cmake-log.txt build-log.txt --clobber 2>$null
 
       - name: 上传诊断日志(失败时)
         if: failure()
@@ -170,15 +167,13 @@ jobs:
           for f in QFRP-*-x86_64.AppImage; do mv "$f" QFRP-x86_64.AppImage; done
           ls -la QFRP-x86_64.AppImage
 
-      - name: 失败时推送构建日志到仓库
+      - name: 失败时把日志挂到 Release
         if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "ci-bot"
-          git config user.email "ci-bot@users.noreply.github.com"
-          git add pkg-log.txt build-log-linux.txt qtwayland-log.txt 2>/dev/null || true
-          git commit -m "CI Linux 构建日志 [skip ci]" || true
-          #tag 触发的运行处于游离 HEAD,必须显式指明推到 main
-          git push origin HEAD:main
+          gh release upload "${GITHUB_REF_NAME}" qtwayland-log.txt cmake-log.txt build-log-linux.txt pkg-log.txt --clobber 2>/dev/null || true
 
       - name: 上传诊断日志(失败时)
         if: failure()
