@@ -376,7 +376,6 @@ Item {
                 delegate: Rectangle {
                     width: tunnelsGrid.cellWidth - 12
                     height: tunnelsGrid.cellHeight - 12
-                    anchors.centerIn: parent
                     radius: 18
                     color: cGlass
                     border.color: cardArea.containsMouse ? "#66818cf8" : cGlassBorder
@@ -599,7 +598,6 @@ Item {
                         delegate: Rectangle {
                             width: nodesGrid.cellWidth - 10
                             height: nodesGrid.cellHeight - 10
-                            anchors.centerIn: parent
                             radius: 14
                             color: cGlass
                             border.color: nodeArea.containsMouse ? "#66818cf8" : cGlassBorder
