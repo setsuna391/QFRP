@@ -32,10 +32,12 @@ ApplicationWindow {
         //初始视图在 onCompleted 里显式装入。
         //不能用 initialItem 绑定:它是响应式的,之后每次登录状态/界面风格变化
         //都会重新求值并把视图压入栈,新旧界面就会叠在一起(重影的根源)
-        Component.onCompleted: stackView.replace(currentViewComponent())
         //启动时整体淡入,窗口内容不会突兀地直接出现
         opacity: 0.0
-        Component.onCompleted: stackView.opacity = 1.0
+        Component.onCompleted: {
+            stackView.replace(currentViewComponent())
+            stackView.opacity = 1.0
+        }
         Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
 
         //登录页/主界面切换:淡入淡出 + 轻微缩放

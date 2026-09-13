@@ -629,7 +629,7 @@ Item {
 
                                     Rectangle {
                                         visible: tier !== ""
-                                        Layout.preferredWidth: tierLabel.implicitWidth + 10
+                                        Layout.preferredWidth: nodeTierLabel.implicitWidth + 10
                                         Layout.preferredHeight: 16
                                         radius: 8
                                         color: tier === "VIP" ? "#33fbbf24" : "#33818cf8"
@@ -637,7 +637,7 @@ Item {
                                         border.width: 1
 
                                         Text {
-                                            id: tierLabel
+                                            id: nodeTierLabel
                                             anchors.centerIn: parent
                                             text: tier
                                             color: parent.border.color
