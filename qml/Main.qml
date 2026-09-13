@@ -29,7 +29,10 @@ ApplicationWindow {
     StackView {
         id: stackView
         anchors.fill: parent
-        initialItem: apiClient.ready ? (UiStyle.modern ? modernMainComponent : mainViewComponent) : (UiStyle.modern ? modernLoginComponent : loginViewComponent)
+        //初始视图在 onCompleted 里显式装入。
+        //不能用 initialItem 绑定:它是响应式的,之后每次登录状态/界面风格变化
+        //都会重新求值并把视图压入栈,新旧界面就会叠在一起(重影的根源)
+        Component.onCompleted: stackView.replace(currentViewComponent())
         //启动时整体淡入,窗口内容不会突兀地直接出现
         opacity: 0.0
         Component.onCompleted: stackView.opacity = 1.0
