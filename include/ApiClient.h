@@ -50,6 +50,8 @@ class ApiClient : public QObject
     //Qt 属性系统的宏,定义一个名为 ready 的属性,类型为 bool,
     //提供读取方法 isReady() 和通知信号 readyChanged()
     Q_PROPERTY(QString token READ token NOTIFY tokenChanged) 
+    //内置 frpc 的版本号(编译期常量),设置页与 /system/clients 的最新版本对比
+    Q_PROPERTY(QString frpcVersion READ frpcVersion CONSTANT)
     //定义一个名为 token 的属性,类型为 QString,
     //提供读取方法 token() 和通知信号 tokenChanged()
 
@@ -102,11 +104,11 @@ private:
     //处理"响应是纯文本"的请求(如 /tunnel/config,返回的是 frpc 配置文件内容,不是 JSON)
     void saveToken();
     //保存 token 到本地设置的函数,外部无法调用
-    //将当前的 token 保存到本地设置中,以便下次启动时自动登录    
-    
+    //将当前的 token 保存到本地设置中,以便下次启动时自动登录
+
     void loadSavedToken();
     //加载本地保存的 token 的函数,外部无法调用
-    //从本地设置中加载保存的 token,如果存在则设置为当前 token   
+    //从本地设置中加载保存的 token,如果存在则设置为当前 token
 
     static ApiClient* s_instance;
     //静态成员变量,用于存储 ApiClient 的单例实例
@@ -129,6 +131,7 @@ public:
     //返回 ApiClient 是否准备就绪的函数,外部可以调用
     //如果准备就绪,说明已经登录成功,可以进行后续的 API 调用,否则需要先登录
     QString token() const;
+    QString frpcVersion() const;
     //返回当前登录的 token 的函数,外部可以调用
     //如果已经登录成功,返回有效的 token,否则返回空字符串
     
@@ -159,6 +162,13 @@ public:
     //获取节点列表函数,外部可以调用
     //发送 GET 请求获取节点列表,如果成功,会发射 nodesReceived
     Q_INVOKABLE void getTunnelConfig(const QString& tunnelId);
+    Q_INVOKABLE void getTunnelTraffic(const QString& tunnelId);
+    Q_INVOKABLE void getUserTrafficHistory();
+    Q_INVOKABLE void getDataPlans();
+    Q_INVOKABLE void getNodeStats();
+    Q_INVOKABLE void getSystemClients();
+    Q_INVOKABLE void editTunnel(const QJsonObject& params);
+    Q_INVOKABLE void getBulletin();
     //获取隧道配置函数,外部可以调用
     //发送 POST /tunnel/config 请求获取 frpc 配置文件(纯文本),成功后发射 tunnelConfigReceived
 signals:
@@ -187,6 +197,14 @@ signals:
     void tunnelConfigFailed(const QString& tunnelId, const QString& error);
     //信号,当隧道配置获取失败时发射(无 token/网络错误/服务器拒绝)
     void nodesReceived(const QJsonArray& nodes);
+    void tunnelTrafficReceived(const QString& tunnelId, const QVariantMap& traffic);
+    void trafficHistoryReceived(const QVariantList& history);
+    void dataPlansReceived(const QJsonArray& plans);
+    void nodeStatsReceived(const QJsonObject& stats);
+    void systemClientsReceived(const QJsonObject& info);
+    void tunnelEdited(const QString& tunnelId);
+    void tunnelEditFailed(const QString& error);
+    void bulletinReceived(const QJsonArray& bulletins);
     //信号,当节点列表获取成功时发射,外部可以连接该信号以更新界面
 
     void errorOccurred(const QString& error);

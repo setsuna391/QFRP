@@ -58,14 +58,15 @@ QString ApiClient::token() const
 
 void ApiClient::login(const QString& token)
 {
-    if (token.isEmpty())
+    const QString normalizedToken = token.trimmed();
+    if (normalizedToken.isEmpty())
     {
         emit loginFailed(QStringLiteral("Token 不能为空"));
         //如果 token 为空,发射 loginFailed 信号通知登录失败,并返回
         return;
     }
 
-    m_token = token;
+    m_token = normalizedToken;
     //先记下 token,后面的 /user/info 请求要带上它来验证是否有效
     emit tokenChanged();
     //发射 tokenChanged 信号通知 token 发生变化
@@ -74,8 +75,8 @@ void ApiClient::login(const QString& token)
     //发送 GET 请求获取用户信息,以验证 token 是否有效
 
     handleReply(reply,
-        [this, token](const QJsonObject& info) {
-            if (m_token != token) return;
+        [this, normalizedToken](const QJsonObject& info) {
+            if (m_token != normalizedToken) return;
             //登录期间 token 被换掉或注销了(比如用户连点了两次登录),
             //这个过期响应直接丢弃,避免旧请求的结果覆盖新状态
 
@@ -85,13 +86,14 @@ void ApiClient::login(const QString& token)
             //发射 readyChanged 信号通知准备状态发生变化
             saveToken();
             //保存 token 到本地设置中,以便下次启动时自动登录
+            qInfo() << "[ApiClient] login success";
             emit loginSuccess();
             //发射 loginSuccess 信号通知登录成功
             emit userInfoReceived(info);
             ///user/info 直接返回用户对象,顺便发出去,QML 不用再单独请求一次
         },
-        [this, token](const QString& error) {
-            if (m_token != token) return;
+        [this, normalizedToken](const QString& error) {
+            if (m_token != normalizedToken) return;
             //同样丢弃过期的失败响应
 
             m_token.clear();
@@ -194,8 +196,14 @@ void ApiClient::handleRawReply(QNetworkReply* reply, std::function<void(QNetwork
         reply->deleteLater();
         //用完释放内存
 
-        if (reply->error() != QNetworkReply::NoError) {
+        const int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        if (reply->error() != QNetworkReply::NoError || statusCode >= 400) {
             //网络错误,或服务器返回了 4xx/5xx 错误状态码
+            //原始错误写入应用日志(/tmp/qfrp-messages.log),便于排查网络问题
+            qWarning().noquote() << "[ApiClient]" << reply->url().toString()
+                                 << "failed:" << reply->errorString()
+                                 << "(HTTP" << statusCode << ")"
+                                 << "body:" << QString::fromUtf8(reply->peek(300));
             reportError(errorText(reply), onError);
             return;
         }
@@ -359,6 +367,69 @@ void ApiClient::getTunnelConfig(const QString& tunnelId)
     }, [this, tunnelId](const QString& error) {
         emit tunnelConfigFailed(tunnelId, error);
     });
+}
+
+QString ApiClient::frpcVersion() const
+{
+    return FRPC_VERSION;
+}
+
+void ApiClient::getTunnelTraffic(const QString& tunnelId)
+{
+    //返回 {时间戳: 字节} 的桶状数据,转成数组交给 QML
+    handleReply(sendRequest("GET", "/tunnel/traffic?id=" + tunnelId),
+        [this, tunnelId](const QJsonObject& resp) {
+            QVariantMap traffic;
+            for (auto it = resp.constBegin(); it != resp.constEnd(); ++it)
+                traffic.insert(it.key(), it.value().toVariant());
+            emit tunnelTrafficReceived(tunnelId, traffic);
+        });
+}
+
+void ApiClient::getUserTrafficHistory()
+{
+    //type=day:条目为 [日期, 上期累计, 本期累计],差分即当日用量
+    handleArrayReply(sendRequest("GET", "/user/traffic_history?type=day"),
+        [this](const QJsonArray& arr) {
+            QVariantList history;
+            for (const auto& e : arr)
+                history.append(e.toVariant());
+            emit trafficHistoryReceived(history);
+        });
+}
+
+void ApiClient::getDataPlans()
+{
+    handleArrayReply(sendRequest("GET", "/user/data_plans?status=valid"),
+        [this](const QJsonArray& arr) { emit dataPlansReceived(arr); });
+}
+
+void ApiClient::getNodeStats()
+{
+    handleReply(sendRequest("GET", "/node/stats"),
+        [this](const QJsonObject& stats) { emit nodeStatsReceived(stats); });
+}
+
+void ApiClient::getSystemClients()
+{
+    handleReply(sendRequest("GET", "/system/clients"),
+        [this](const QJsonObject& info) { emit systemClientsReceived(info); });
+}
+
+void ApiClient::editTunnel(const QJsonObject& params)
+{
+    //编辑接口支持:备注/本地 IP/本地端口/类型/extra(不支持名称与节点)
+    handleRawReply(sendRequest("POST", "/tunnel/edit", params),
+        [this, params](QNetworkReply*) {
+            emit tunnelEdited(QString::number(params.value("id").toInt()));
+        },
+        [this](const QString& error) { emit tunnelEditFailed(error); });
+}
+
+void ApiClient::getBulletin()
+{
+    handleArrayReply(sendRequest("GET", "/system/bulletin"),
+        [this](const QJsonArray& arr) { emit bulletinReceived(arr); });
 }
 
 void ApiClient::saveToken()

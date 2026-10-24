@@ -9,14 +9,21 @@ Item {
     //所在窗口(无边框窗口的控制按钮/拖动用)
     readonly property var appWindow: Window.window
 
-    //渐变背景
+    //背景:秋季插画(打包资源),上面一层主题色轻遮罩压住亮度
+    Image {
+        anchors.fill: parent
+        source: "qrc:/assets/login-bg.jpg"
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        //大幅缩小显示(原图 2000px → ~1080px),不开 mipmap 会用线性采样直接发软
+        mipmap: true
+        smooth: true
+    }
+
     Rectangle {
         anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.cGradTop }
-            GradientStop { position: 0.5; color: Theme.cGradMid }
-            GradientStop { position: 1.0; color: Theme.cGradBottom }
-        }
+        color: Theme.cBg
+        opacity: 0.22
     }
 
     //顶部拖动区(无边框窗口移动) + 窗口控制按钮
@@ -54,12 +61,12 @@ Item {
             width: sz
             height: sz * 1.5
 
-            //花瓣本体:胶囊形,旋转起来有花瓣感
-            Rectangle {
+            //花瓣本体:真樱花贴图(与粒子同一资源)
+            Image {
                 anchors.fill: parent
-                radius: parent.sz / 2
-                color: Theme.cPetal
-                opacity: 0.4 + Math.random() * 0.3
+                source: "qrc:/assets/petal.png"
+                rotation: Math.random() * 360
+                opacity: 0.5 + Math.random() * 0.3
             }
 
             //从顶部落到底部,循环
@@ -101,11 +108,11 @@ Item {
     //登录卡片
     Rectangle {
         id: card
-        width: 380
-        height: 440
+        width: 400
+        height: 420
         anchors.centerIn: parent
         color: Theme.cCard
-        radius: 20
+        radius: 24
         border.color: Theme.cBorder
         border.width: 1
 
@@ -134,13 +141,15 @@ Item {
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 36
+            anchors.margins: 40
             spacing: 0
+
+            //上弹簧:内容块整体垂直居中,不再"标题吊顶、表单吊底"
+            Item { Layout.fillHeight: true; Layout.fillWidth: true }
 
             //标题
             Text {
                 Layout.fillWidth: true
-                Layout.topMargin: 24
                 text: "QFRP"
                 color: Theme.cText
                 font.pixelSize: 26
@@ -158,19 +167,16 @@ Item {
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            //间距
-            Item {
-                Layout.fillHeight: true
-                Layout.preferredHeight: 20
-            }
+            //标题区与表单的间距
+            Item { Layout.preferredHeight: 32; Layout.fillWidth: true }
 
             //Token 输入框
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 44
-                radius: 10
+                radius: 12
                 color: Theme.cInputBg
-                border.color: tokenInput.activeFocus ? Theme.cAccent : Theme.cBorder
+                border.color: tokenInput.activeFocus ? Theme.cAccent : "transparent"
                 border.width: 1
                 Behavior on border.color { ColorAnimation { duration: 150 } }
 
@@ -212,13 +218,13 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 44
                 Layout.topMargin: 12
-                radius: 10
+                radius: 12
                 color: loginArea.containsMouse ? Theme.cAccentHover : Theme.cAccent
                 Behavior on color { ColorAnimation { duration: 150 } }
 
-                //按下时轻微缩小,松开弹回
+                //按下时轻微缩小,松开弹回(弹簧)
                 scale: loginArea.pressed ? 0.96 : (loginArea.containsMouse ? 1.03 : 1.0)
-                Behavior on scale { NumberAnimation { duration: 120; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
+                Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
 
                 property bool loading: false
 
@@ -264,7 +270,7 @@ Item {
                         anchors.fill: parent
                         radius: 11
                         color: "transparent"
-                        border.color: Theme.cBorder
+                        border.color: "#55ffffff"
                         border.width: 2
                     }
 
@@ -301,8 +307,7 @@ Item {
             //底部链接
             Text {
                 Layout.fillWidth: true
-                Layout.topMargin: 16
-                Layout.bottomMargin: 4
+                Layout.topMargin: 18
                 text: "没有账号？前往 SakuraFrp 获取 Token →"
                 color: Theme.cTextMuted
                 font.pixelSize: 11
@@ -317,6 +322,9 @@ Item {
                     onClicked: Qt.openUrlExternally("https://www.natfrp.com/")
                 }
             }
+
+            //下弹簧
+            Item { Layout.fillHeight: true; Layout.fillWidth: true }
         }
     }
 }

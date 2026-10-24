@@ -15,6 +15,7 @@
 #include <utility>
 #ifndef Q_OS_WIN
 #include <csignal>
+#include <cerrno>
 #include <unistd.h>
 #else
 #include <windows.h>
@@ -97,8 +98,13 @@ QString FrpcManager::resolveBinary() const
         return m_frpcPath;
     const QString autoPath = binDir() + "/frpc";
     QFile bundled(QStringLiteral(":/frpc/frpc"));
+    QSettings settings;
+    const QString downloadedVer = settings.value("frpc/downloadedVer").toString();
     if (QFileInfo::exists(autoPath)) {
-        if (bundled.exists() && bundled.size() != QFileInfo(autoPath).size()) {
+        //缓存存在:若记录过"从官方下载的版本",说明缓存比随包新版,直接信任;
+        //无版本记录时维持旧行为(与随包尺寸不同视为需重解包)
+        if (downloadedVer.isEmpty() && bundled.exists()
+            && bundled.size() != QFileInfo(autoPath).size()) {
             QFile::remove(autoPath);
         } else {
             return autoPath;
@@ -163,7 +169,11 @@ void FrpcManager::downloadFrpc()
         return;
     m_downloading = true;
     emit frpcDownloadStarted();
-    QNetworkReply* reply = m_manager.get(QNetworkRequest(QUrl(kClientsUrl)));
+    QNetworkRequest metaReq{QUrl(kClientsUrl)};
+    //元数据和文件下载都要有超时:挂起时 m_downloading 会永久卡 true,
+    //之后的下载/自动启动全部被静默禁用,只能重启应用
+    metaReq.setTransferTimeout(30000);
+    QNetworkReply* reply = m_manager.get(metaReq);
     connect(reply, &QNetworkReply::finished, this, [this, reply]() {
         reply->deleteLater();
         if (reply->error() != QNetworkReply::NoError) {
@@ -191,14 +201,17 @@ void FrpcManager::downloadFrpc()
             }
             return;
         }
+        const QString frpcVer = frpc.value("ver").toString();
         qInfo().noquote() << "FrpcManager: downloading frpc" << frpc.value("ver").toString() << "from" << url;
-        QNetworkReply* dl = m_manager.get(QNetworkRequest(QUrl(url)));
+        QNetworkRequest dlReq{QUrl(url)};
+        dlReq.setTransferTimeout(120000);
+        QNetworkReply* dl = m_manager.get(dlReq);
         connect(dl, &QNetworkReply::downloadProgress, this, [this](qint64 received, qint64 total) {
             if (total > 0)
                 emit frpcOutput(QStringLiteral("frpc-download"),
                                 QStringLiteral("下载进度 %1%").arg(received * 100 / total));
         });
-        connect(dl, &QNetworkReply::finished, this, [this, dl, url]() {
+        connect(dl, &QNetworkReply::finished, this, [this, dl, url, frpcVer]() {
             dl->deleteLater();
             if (dl->error() != QNetworkReply::NoError) {
                 m_downloading = false;
@@ -226,6 +239,10 @@ void FrpcManager::downloadFrpc()
             file.close();
             file.setPermissions(QFile::ExeUser | QFile::ExeGroup | QFile::ExeOther
                                 | QFile::ReadUser | QFile::ReadGroup | QFile::ReadOther);
+            //记录下载到的版本:resolveBinary 据此优先使用缓存里的新版,
+            //而不是被随包旧版覆盖(升级流程的关键)
+            QSettings settings;
+            settings.setValue("frpc/downloadedVer", frpcVer);
             m_downloading = false;
             emit frpcDownloadFinished(path);
             if (!m_pendingStartId.isEmpty()) {
@@ -342,6 +359,11 @@ void FrpcManager::stopAdopted(const QString& tunnelId)
     qInfo().noquote() << QStringLiteral("[FrpcManager] sending SIGTERM to adopted pid").arg(entry.pid);
     if (::kill(static_cast<pid_t>(entry.pid), SIGTERM) == 0) {
         QTimer::singleShot(3000, this, [this, tunnelId, pid = entry.pid]() {
+            //收尾前确认这条隧道仍是当初那条接管进程:
+            //3 秒内用户重新启动的话,这里是新的 QProcess 句柄,不能误清
+            const ProcEntry& cur = m_procs.value(tunnelId);
+            if (cur.proc || cur.pid != pid)
+                return;
             if (pidAlive(pid)) {
                 qWarning() << "[FrpcManager] adopted process still alive, sending SIGKILL to" << pid;
                 ::kill(static_cast<pid_t>(pid), SIGKILL);
@@ -542,6 +564,17 @@ bool FrpcManager::pidAlive(qint64 pid) const
     ::CloseHandle(h);
     return alive;
 #else
-    return ::kill(static_cast<pid_t>(pid), 0) == 0;
+    if (::kill(static_cast<pid_t>(pid), 0) != 0)
+        return false;
+    //pid 复用防护:接管记录里的 frpc 退出后,系统可能把同一个 pid 分给别的进程。
+    //进程活着但 comm 不是 frpc 的,视为已死亡——否则轮询会永远"活着",
+    //停止时还会向无辜进程发信号
+    QFile comm(QStringLiteral("/proc/%1/comm").arg(pid));
+    if (comm.open(QIODevice::ReadOnly)) {
+        const QByteArray name = comm.readAll().simplified();
+        if (!name.isEmpty() && !name.startsWith("frpc"))
+            return false;
+    }
+    return true;
 #endif
 }

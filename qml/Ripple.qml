@@ -24,8 +24,8 @@ Rectangle {
         id: rippleAnim
         PropertyAction { target: ripple; property: "visible"; value: true }
         ParallelAnimation {
-            NumberAnimation { target: ripple; property: "opacity"; from: 0.9; to: 0; duration: 420; easing.type: Easing.OutQuad }
-            NumberAnimation { target: ripple; property: "scale"; from: 0.3; to: ripple.maxScale; duration: 400; easing.type: Easing.OutQuad }
+            NumberAnimation { target: ripple; property: "opacity"; from: 0.9; to: 0; duration: 520; easing.type: Easing.OutQuad }
+            NumberAnimation { target: ripple; property: "scale"; from: 0.3; to: ripple.maxScale; duration: 520; easing.type: Easing.OutQuint }
         }
         PropertyAction { target: ripple; property: "visible"; value: false }
     }

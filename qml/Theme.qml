@@ -23,10 +23,22 @@ QtObject {
     // ===== 调色板 =====
     //每项字段: name + 全部 c* 颜色。新加主题时整块复制一份改色值即可。
     readonly property var palettes: [
-        // 樱花粉(默认)
+        // 曜石(默认·深色)—— 石板灰蓝底 + 墨蓝无描边浮卡 + 紫罗兰强调,卡片靠明暗对比浮起
+        { name: "曜石",
+          cBg: "#363e4c", cSidebar: "#2f3743", cCard: "#8c1c222e", cBorder: "#2a3140",
+          cInputBg: "#99252d3b", cAccent: "#a78bfa", cAccentHover: "#c0abfc",
+          cText: "#eef1f7", cTextSec: "#97a1b6", cTextMuted: "#687289",
+          cSuccess: "#34d399", cError: "#f87171", cWarning: "#fbbf24",
+          cNavHover: "#2a3240", cNavActive: "#343d4e", cHoverBg: "#2a3240",
+          cErrorBg: "#3c2731", cScrollbar: "#4d5769", cDotOff: "#4d5871",
+          cCardHoverBorder: "#3d4859", cTcpTag: "#a78bfa",
+          cSuccessBg: "#17332a", cSuccessBgHover: "#1e4438",
+          cGradTop: "#3b4453", cGradMid: "#353d4b", cGradBottom: "#2e3642",
+          cPetal: "#8291ac", cDimOverlay: "#990d1220" },
+        // 樱花粉
         { name: "樱花粉",
-          cBg: "#fff0f5", cSidebar: "#ffdcea", cCard: "#fffafd", cBorder: "#ffc2d9",
-          cInputBg: "#fff0f5", cAccent: "#ff5c8a", cAccentHover: "#f04378",
+          cBg: "#fff0f5", cSidebar: "#ffedf4", cCard: "#4dfffafd", cBorder: "#80ffc2d9",
+          cInputBg: "#b3fff0f5", cAccent: "#ff5c8a", cAccentHover: "#f04378",
           cText: "#4a2b3a", cTextSec: "#a86b85", cTextMuted: "#b98fa4",
           cSuccess: "#1fae70", cError: "#e63757", cWarning: "#d97706",
           cNavHover: "#ffc9dd", cNavActive: "#ffb3cf", cHoverBg: "#ffe4ee",
@@ -37,8 +49,8 @@ QtObject {
           cPetal: "#ff7fab", cDimOverlay: "#664a2b3a" },
         // 薰衣草紫
         { name: "薰衣草紫",
-          cBg: "#f4f0fb", cSidebar: "#e3d8f7", cCard: "#fbf9fe", cBorder: "#cfbceb",
-          cInputBg: "#f0eafb", cAccent: "#8b5cf6", cAccentHover: "#7444e0",
+          cBg: "#f4f0fb", cSidebar: "#f0eafa", cCard: "#4dfbf9fe", cBorder: "#80cfbceb",
+          cInputBg: "#b3f0eafb", cAccent: "#8b5cf6", cAccentHover: "#7444e0",
           cText: "#33254d", cTextSec: "#7a67a0", cTextMuted: "#a394c4",
           cSuccess: "#1fae70", cError: "#d93757", cWarning: "#d97706",
           cNavHover: "#d7c9f2", cNavActive: "#c5b0f0", cHoverBg: "#ece2f8",
@@ -49,8 +61,8 @@ QtObject {
           cPetal: "#a98ce8", cDimOverlay: "#662b2048" },
         // 薄荷绿
         { name: "薄荷绿",
-          cBg: "#eefaf3", cSidebar: "#d2f0e2", cCard: "#f8fdfa", cBorder: "#b2e4cd",
-          cInputBg: "#e6f6ee", cAccent: "#16a374", cAccentHover: "#0f8a5f",
+          cBg: "#eefaf3", cSidebar: "#e7f8ef", cCard: "#4df8fdfa", cBorder: "#80b2e4cd",
+          cInputBg: "#b3e6f6ee", cAccent: "#16a374", cAccentHover: "#0f8a5f",
           cText: "#1e3d30", cTextSec: "#5c8672", cTextMuted: "#8bb09d",
           cSuccess: "#1fae70", cError: "#e63757", cWarning: "#d97706",
           cNavHover: "#bfe9d6", cNavActive: "#a0dfc3", cHoverBg: "#dcf4e8",
@@ -61,8 +73,8 @@ QtObject {
           cPetal: "#4dbd92", cDimOverlay: "#661e3d30" },
         // 天空蓝
         { name: "天空蓝",
-          cBg: "#eef5fc", cSidebar: "#d6e8f8", cCard: "#f8fbfe", cBorder: "#b7d6ee",
-          cInputBg: "#e5f0fa", cAccent: "#3e86f0", cAccentHover: "#2a6cd6",
+          cBg: "#eef5fc", cSidebar: "#eaf3fb", cCard: "#4df8fbfe", cBorder: "#80b7d6ee",
+          cInputBg: "#b3e5f0fa", cAccent: "#3e86f0", cAccentHover: "#2a6cd6",
           cText: "#22334d", cTextSec: "#647b99", cTextMuted: "#8fa4bf",
           cSuccess: "#1fae70", cError: "#e63757", cWarning: "#d97706",
           cNavHover: "#c3dcf4", cNavActive: "#a7cdf0", cHoverBg: "#dfeefa",
@@ -73,8 +85,8 @@ QtObject {
           cPetal: "#649fe8", cDimOverlay: "#6622334d" },
         // 蜜橘橙
         { name: "蜜橘橙",
-          cBg: "#fff6eb", cSidebar: "#ffe6c9", cCard: "#fffcf6", cBorder: "#f2cf9f",
-          cInputBg: "#fff1de", cAccent: "#ee8c2b", cAccentHover: "#d97a1a",
+          cBg: "#fff6eb", cSidebar: "#fff2e2", cCard: "#4dfffcf6", cBorder: "#80f2cf9f",
+          cInputBg: "#b3fff1de", cAccent: "#ee8c2b", cAccentHover: "#d97a1a",
           cText: "#46311c", cTextSec: "#9d7c54", cTextMuted: "#c2a888",
           cSuccess: "#1fae70", cError: "#e63757", cWarning: "#d97706",
           cNavHover: "#fbdfb4", cNavActive: "#f8cf92", cHoverBg: "#fdeed6",
@@ -85,8 +97,8 @@ QtObject {
           cPetal: "#f2a04a", cDimOverlay: "#66463118" },
         // 雾灰蓝
         { name: "雾灰蓝",
-          cBg: "#f2f4f8", cSidebar: "#dde3ec", cCard: "#fafbfd", cBorder: "#c3ccd9",
-          cInputBg: "#e9edf3", cAccent: "#64748b", cAccentHover: "#4b5c73",
+          cBg: "#f2f4f8", cSidebar: "#ebeef4", cCard: "#4dfafbfd", cBorder: "#80c3ccd9",
+          cInputBg: "#b3e9edf3", cAccent: "#64748b", cAccentHover: "#4b5c73",
           cText: "#26303f", cTextSec: "#6b7a90", cTextMuted: "#95a2b5",
           cSuccess: "#1fae70", cError: "#e63757", cWarning: "#d97706",
           cNavHover: "#cbd5e3", cNavActive: "#b3c2d6", cHoverBg: "#e5eaf1",
@@ -97,8 +109,8 @@ QtObject {
           cPetal: "#8296ad", cDimOverlay: "#6626303f" },
         // 夜来香(深色)
         { name: "夜来香",
-          cBg: "#16131d", cSidebar: "#100e16", cCard: "#1e1a27", cBorder: "#2a2438",
-          cInputBg: "#241f31", cAccent: "#ff7fab", cAccentHover: "#ff97bd",
+          cBg: "#16131d", cSidebar: "#100e16", cCard: "#8c1e1a27", cBorder: "#2a2438",
+          cInputBg: "#99241f31", cAccent: "#ff7fab", cAccentHover: "#ff97bd",
           cText: "#f0eaf4", cTextSec: "#a798c2", cTextMuted: "#6e6488",
           cSuccess: "#34d399", cError: "#f87171", cWarning: "#fbbf24",
           cNavHover: "#282234", cNavActive: "#3a2f4d", cHoverBg: "#282234",

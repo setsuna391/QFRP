@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16.0)
-project(QML_FRPC VERSION 0.2.0 LANGUAGES C CXX)
+project(QML_FRPC VERSION 0.3.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -9,6 +9,9 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick Network)
 
+# Qt Quick QML modules may be installed separately from Qt Base (notably on NixOS).
+get_filename_component(QT6_QML_IMPORT_PATH "${Qt6Quick_DIR}/../../qt-6/qml" REALPATH)
+
 qt_policy(SET QTP0001 NEW)
 qt_policy(SET QTP0004 NEW)
 
@@ -17,12 +20,12 @@ include_directories(include)
 file(GLOB SOURCES "src/*.cpp")
 
 add_executable(QML_FRPC ${SOURCES})
+target_compile_definitions(QML_FRPC PRIVATE QFRP_QML_IMPORT_PATH="${QT6_QML_IMPORT_PATH}")
 set_target_properties(QML_FRPC PROPERTIES OUTPUT_NAME "QML_FRPC" RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin"
     WIN32_EXECUTABLE TRUE)
 
-#Theme.qml / UiStyle.qml 是 QML 单例(必须在 qt_add_qml_module 之前设置)
+#Theme.qml 是 QML 单例(必须在 qt_add_qml_module 之前设置)
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-set_source_files_properties(qml/UiStyle.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 qt_add_qml_module(QML_FRPC
     URI QML_FRPC
@@ -31,16 +34,10 @@ qt_add_qml_module(QML_FRPC
         qml/Main.qml
         qml/LoginView.qml
         qml/MainView.qml
-        qml/TunnelCard.qml
         qml/AppIcon.qml
         qml/Ripple.qml
         qml/Theme.qml
-        qml/UiStyle.qml
         qml/WindowControls.qml
-        qml/modern/ModernBackground.qml
-        qml/modern/ModernLoginView.qml
-        qml/modern/ModernMainView.qml
-        qml/modern/GlassPanel.qml
     SOURCES
         src/ApiClient.cpp
         include/ApiClient.h
@@ -55,21 +52,11 @@ target_link_libraries(QML_FRPC PRIVATE
     Qt6::Network
 )
 
-#ShaderTools 在部分平台的 Qt 二进制包中缺席(如 Windows msvc2022):
-#缺席时跳过着色器编译,新版界面背景自动回退为普通渐变
-find_package(Qt6 QUIET COMPONENTS ShaderTools)
-if(TARGET Qt6::ShaderTools)
-    #新版界面的 GLSL 着色器(构建期编译为 .qsb)
-    qt_add_shaders(QML_FRPC "modern_shaders"
-        PREFIX "/"
-        FILES
-            qml/modern/shaders/flow.vert
-            qml/modern/shaders/flow.frag
-            qml/modern/shaders/frost.frag
-    )
-else()
-    message(WARNING "Qt ShaderTools 不可用,液态玻璃/流动渐变着色器不编译(背景回退普通渐变)")
-endif()
+# Nix's split Qt packages expose forwarding headers that include paths such as
+# <QtCore/qobject.h>; include the Qt package's top-level include directory too.
+get_filename_component(QT6_CORE_PREFIX "${Qt6Core_DIR}/../../.." REALPATH)
+target_include_directories(QML_FRPC SYSTEM PRIVATE "${QT6_CORE_PREFIX}/include")
+target_include_directories(QML_FRPC SYSTEM PRIVATE "${QT6_CORE_PREFIX}/include/QtCore")
 
 if(MSVC)
     #源码与中文字符串字面量均为 UTF-8 编码,MSVC 需要显式指定,否则按本地码页误读
@@ -107,7 +94,7 @@ if(QFRP_BUNDLE_FRPC AND NOT EXISTS "${FRPC_BUNDLED}")
         set(FRPC_TARGET_ARCH "linux_riscv64")
     endif()
     #与 src/ApiClient.cpp 的 FRPC_VERSION 对应的官方分发版本
-    set(FRPC_VERSION "0.51.0-sakura-14")
+    set(FRPC_VERSION "0.51.0-sakura-7.2")
     set(FRPC_URL "https://nya.globalslb.net/natfrp/client/frpc/${FRPC_VERSION}/frpc_${FRPC_TARGET_ARCH}${FRPC_DL_EXT}")
     message(STATUS "Downloading bundled frpc (${FRPC_TARGET_ARCH}) ...")
     file(DOWNLOAD "${FRPC_URL}" "${FRPC_BUNDLED}" STATUS frpc_dl_status SHOW_PROGRESS TIMEOUT 300)
@@ -130,6 +117,20 @@ if(EXISTS "${FRPC_BUNDLED}")
         FILES "${FRPC_BUNDLED}"
     )
 endif()
+
+#樱花花瓣粒子贴图
+set_source_files_properties("assets/petal.png" PROPERTIES QT_RESOURCE_ALIAS "petal.png")
+qt_add_resources(QML_FRPC "petal_tex"
+    PREFIX "/assets"
+    FILES "assets/petal.png"
+)
+
+#登录页背景插画
+set_source_files_properties("assets/login-bg.jpg" PROPERTIES QT_RESOURCE_ALIAS "login-bg.jpg")
+qt_add_resources(QML_FRPC "login_bg"
+    PREFIX "/assets"
+    FILES "assets/login-bg.jpg"
+)
 
 #应用图标(窗口图标 + 桌面入口用)
 set_source_files_properties("assets/icon.png" PROPERTIES QT_RESOURCE_ALIAS "icon.png")

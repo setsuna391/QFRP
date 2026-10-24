@@ -44,63 +44,92 @@ Canvas {
 
         switch (iconType) {
         case "tunnel":
-            //I 型钢截面,代表隧道/管道
+            //拱形隧道口:地面线 + 半圆拱 + 路面中线
             ctx.beginPath()
-            ctx.moveTo(4, 6)
-            ctx.lineTo(16, 6)
-            ctx.moveTo(4, 14)
-            ctx.lineTo(16, 14)
-            ctx.moveTo(6, 6)
-            ctx.lineTo(6, 14)
-            ctx.moveTo(14, 6)
-            ctx.lineTo(14, 14)
+            ctx.moveTo(2.5, 17)
+            ctx.lineTo(17.5, 17)
+            ctx.moveTo(4.5, 17)
+            ctx.lineTo(4.5, 10.5)
+            ctx.arc(10, 10.5, 5.5, Math.PI, 0)
+            ctx.lineTo(15.5, 17)
+            ctx.stroke()
+            ctx.beginPath()
+            ctx.moveTo(10, 17)
+            ctx.lineTo(10, 14.8)
+            ctx.moveTo(10, 12.2)
+            ctx.lineTo(10, 10)
             ctx.stroke()
             break
 
         case "node":
-            //三个相连的节点
+            //三个空心节点互连(线只画到圆边,不穿进圆里)
             ctx.beginPath()
-            ctx.arc(6, 7, 2.5, 0, 2 * Math.PI)
-            ctx.arc(14, 7, 2.5, 0, 2 * Math.PI)
-            ctx.arc(10, 15, 2.5, 0, 2 * Math.PI)
-            ctx.fill()
+            ctx.moveTo(7.2, 6)
+            ctx.lineTo(12.8, 6)
+            ctx.moveTo(6.07, 7.92)
+            ctx.lineTo(8.93, 13.08)
+            ctx.moveTo(13.93, 7.92)
+            ctx.lineTo(11.07, 13.08)
+            ctx.stroke()
             ctx.beginPath()
-            ctx.moveTo(6, 7)
-            ctx.lineTo(14, 7)
-            ctx.moveTo(6, 7)
-            ctx.lineTo(10, 15)
-            ctx.moveTo(14, 7)
-            ctx.lineTo(10, 15)
+            ctx.arc(5, 6, 2.2, 0, 2 * Math.PI)
+            ctx.stroke()
+            ctx.beginPath()
+            ctx.arc(15, 6, 2.2, 0, 2 * Math.PI)
+            ctx.stroke()
+            ctx.beginPath()
+            ctx.arc(10, 15, 2.2, 0, 2 * Math.PI)
             ctx.stroke()
             break
 
         case "log":
-            //三条横线,代表文本/日志
+            //终端窗口:圆角框 + 提示符箭头 + 光标线
             ctx.beginPath()
-            ctx.moveTo(4, 7)
-            ctx.lineTo(16, 7)
-            ctx.moveTo(4, 11)
-            ctx.lineTo(13, 11)
-            ctx.moveTo(4, 15)
-            ctx.lineTo(15, 15)
+            ctx.moveTo(4.5, 4)
+            ctx.lineTo(15.5, 4)
+            ctx.quadraticCurveTo(17.5, 4, 17.5, 6)
+            ctx.lineTo(17.5, 14)
+            ctx.quadraticCurveTo(17.5, 16, 15.5, 16)
+            ctx.lineTo(4.5, 16)
+            ctx.quadraticCurveTo(2.5, 16, 2.5, 14)
+            ctx.lineTo(2.5, 6)
+            ctx.quadraticCurveTo(2.5, 4, 4.5, 4)
+            ctx.closePath()
+            ctx.stroke()
+            ctx.beginPath()
+            ctx.moveTo(6, 8)
+            ctx.lineTo(8.5, 10.5)
+            ctx.lineTo(6, 13)
+            ctx.moveTo(11, 13.2)
+            ctx.lineTo(14.2, 13.2)
             ctx.stroke()
             break
 
         case "settings":
-            //简化的齿轮
+            //滑块:三行横线 + 错位的空心圆钮(比齿轮在小尺寸下清晰得多)
             ctx.beginPath()
-            ctx.arc(10, 10, 6, 0, 2 * Math.PI)
+            ctx.moveTo(3.5, 5)
+            ctx.lineTo(10.8, 5)
+            ctx.moveTo(15.2, 5)
+            ctx.lineTo(16.5, 5)
+            ctx.moveTo(3.5, 10)
+            ctx.lineTo(4.8, 10)
+            ctx.moveTo(9.2, 10)
+            ctx.lineTo(16.5, 10)
+            ctx.moveTo(3.5, 15)
+            ctx.lineTo(9.8, 15)
+            ctx.moveTo(14.2, 15)
+            ctx.lineTo(16.5, 15)
             ctx.stroke()
             ctx.beginPath()
-            ctx.arc(10, 10, 3, 0, 2 * Math.PI)
+            ctx.arc(13, 5, 2.2, 0, 2 * Math.PI)
             ctx.stroke()
-            for (var i = 0; i < 8; i++) {
-                var a = i * Math.PI / 4
-                ctx.beginPath()
-                ctx.moveTo(10 + Math.cos(a) * 6, 10 + Math.sin(a) * 6)
-                ctx.lineTo(10 + Math.cos(a) * 8, 10 + Math.sin(a) * 8)
-                ctx.stroke()
-            }
+            ctx.beginPath()
+            ctx.arc(7, 10, 2.2, 0, 2 * Math.PI)
+            ctx.stroke()
+            ctx.beginPath()
+            ctx.arc(12, 15, 2.2, 0, 2 * Math.PI)
+            ctx.stroke()
             break
 
         case "user":
@@ -183,6 +212,18 @@ Canvas {
             ctx.lineTo(11, 4)
             ctx.quadraticCurveTo(12, 4, 12, 5)
             ctx.lineTo(12, 7)
+            ctx.stroke()
+            break
+
+        case "edit":
+            //铅笔(编辑)
+            ctx.beginPath()
+            ctx.moveTo(14.2, 3.6)
+            ctx.lineTo(16.4, 5.8)
+            ctx.lineTo(6.4, 15.8)
+            ctx.lineTo(3.6, 16.4)
+            ctx.lineTo(4.2, 13.6)
+            ctx.closePath()
             ctx.stroke()
             break
 

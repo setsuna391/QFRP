@@ -1,0 +1,12 @@
+#!/bin/sh
+#渲染后端选择:nix 环境的 Mesa/glvnd 找不到 NVIDIA EGL vendor,会退化成 llvmpipe
+#软件渲染;而 NVIDIA EGL 在 nix 环境里初始化 Wayland 支持又会失败。
+#应用本身链接了 Vulkan loader,系统有 NVIDIA ICD——直接走 Vulkan 后端,
+#绕开整个 EGL/glvnd 链路拿到硬件加速。无 NVIDIA ICD 的机器上可自行删掉 QSG_RHI_BACKEND
+exec nix develop "$PWD" -c sh -c '
+    export QSG_RHI_BACKEND=vulkan
+    if [ -f /run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json ]; then
+        export VK_ICD_FILENAMES=/run/opengl-driver/share/vulkan/icd.d/nvidia_icd.json
+    fi
+    exec "$1" "$@"
+' sh "$PWD/out/build/QML_FRPC/bin/QML_FRPC" "$@"

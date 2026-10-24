@@ -4,12 +4,12 @@
         {
             "name": "QML_FRPC",
             "displayName": "GCC x86_64-pc-linux-gnu",
-            "description": "正在使用编译器: C = /usr/bin/gcc, CXX = /usr/bin/g++",
+            "description": "使用 PATH 中的 GCC 编译器",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
-                "CMAKE_C_COMPILER": "/usr/bin/gcc",
-                "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
             }

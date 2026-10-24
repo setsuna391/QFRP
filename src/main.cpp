@@ -3,6 +3,7 @@
 #include "FrpcManager.h"
 #include <QGuiApplication>
 #include <QIcon>
+#include <QLibraryInfo>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickWindow>
@@ -30,7 +31,8 @@ int g_signalFds[2];
 void signalHandler(int)
 {
     const char b = 1;
-    ::write(g_signalFds[0], &b, 1);
+    const ssize_t written = ::write(g_signalFds[0], &b, 1);
+    (void)written;
 }
 
 void installSignalHandlers(QCoreApplication *app)
@@ -47,10 +49,11 @@ void installSignalHandlers(QCoreApplication *app)
     QObject::connect(notifier, &QSocketNotifier::activated, app,
                      [notifier]
                      {
-                         notifier->setEnabled(false);
-                         char b = 0;
-                         ::read(g_signalFds[1], &b, 1);
-                         QCoreApplication::quit();
+                          notifier->setEnabled(false);
+                          char b = 0;
+                          const ssize_t readCount = ::read(g_signalFds[1], &b, 1);
+                          (void)readCount;
+                          QCoreApplication::quit();
                      });
 }
 
@@ -77,6 +80,22 @@ static void fileMessageHandler(QtMsgType type, const QMessageLogContext &, const
 // 程序入口:创建 Qt 应用、QML 引擎,把 ApiClient/FrpcManager 单例注册给 QML,然后加载主界面
 int main(int argc, char *argv[])
 {
+    QByteArray importPaths = qgetenv("QML2_IMPORT_PATH");
+    const QByteArray qtQmlImportPath = QLibraryInfo::path(QLibraryInfo::Qml2ImportsPath).toUtf8();
+    if (!qtQmlImportPath.isEmpty())
+    {
+        if (!importPaths.isEmpty())
+            importPaths += ':';
+        importPaths += qtQmlImportPath;
+    }
+#ifdef QFRP_QML_IMPORT_PATH
+    if (!importPaths.isEmpty())
+        importPaths += ':';
+    importPaths += QFRP_QML_IMPORT_PATH;
+#endif
+    if (!importPaths.isEmpty())
+        qputenv("QML2_IMPORT_PATH", importPaths);
+
     // 分数缩放(1.2x)下 fontconfig 默认的 hintslight 会让笔画落在半像素上显得发虚,
     // 强制 full hinting 让笔画对齐物理像素网格(仅本进程生效,不改系统字体配置)
     qputenv("QT_FREETYPE_PROPERTIES", "Noto Sans CJK SC:hintstyle=hintfull:hinting=true");
@@ -100,7 +119,9 @@ int main(int argc, char *argv[])
     qInstallMessageHandler(fileMessageHandler);
 
     // Qt Quick 默认用距离场渲染文本,在 1.2x 这类分数缩放的屏幕上边缘会发虚;
-    // NativeTextRendering 直接按真实 devicePixelRatio 走 FreeType 光栅化,最锐利
+    // NativeTextRendering 直接按真实 devicePixelRatio 走 FreeType 光栅化,最锐利。
+    //(窗口级只有 QtRendering/NativeTextRendering 两种;更细的 CurveRendering
+    // 只能按 Text.renderType 逐元素设置,日志页在用)
     QQuickWindow::setTextRenderType(QQuickWindow::NativeTextRendering);
 
     // 任何形式的正常退出(界面退出按钮/窗口关闭/SIGTERM)都会触发 aboutToQuit,
