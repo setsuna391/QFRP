@@ -2,6 +2,8 @@
 out/
 build/
 compile_commands.json
+result
+result-*
 
 # 编辑器/IDE 本地配置
 .vscode/
