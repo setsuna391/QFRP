@@ -107,6 +107,8 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     QGuiApplication::setOrganizationName("QML_FRPC");
     QGuiApplication::setApplicationName("QML_FRPC");
+    //Wayland app_id 取自 desktopFileName:niri 窗口规则按 app-id 匹配时用
+    QGuiApplication::setDesktopFileName("qml-frpc");
     // 组织名和应用名要一起设置,QSettings 靠它们确定配置文件的位置,
     // 不设置组织名的话 token 会存到 ~/.config/Unknown Organization/ 下面
     // 窗口图标(内嵌资源,Wayland 下任务栏/启动器图标由 .desktop 提供)

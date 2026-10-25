@@ -203,13 +203,13 @@ Item {
     //变成短促的平滑动画(位置插值),手感顺滑。放在 Flickable 内即可生效
     component SmoothWheel : WheelHandler {
         id: smoothWheel
-        property real speed: 2.0
+        property real speed: 2.6
         property Flickable flick: parent
         //WheelHandler 不是 Item,不能带子对象;动画用属性内联声明
         property NumberAnimation anim: NumberAnimation {
             target: smoothWheel.flick
             property: "contentY"
-            duration: 450
+            duration: 320
             easing.type: Easing.OutQuint
         }
         onWheel: function(ev) {
@@ -241,8 +241,8 @@ Item {
             running: tunnelsPageCol.visible
             PauseAnimation { duration: revealRoot.enterDelay }
             ParallelAnimation {
-                NumberAnimation { target: revealRoot; property: "opacity"; to: 1; duration: 280; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-                NumberAnimation { target: revealT; property: "y"; from: 28; to: 0; duration: 380; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
+                NumberAnimation { target: revealRoot; property: "opacity"; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
+                NumberAnimation { target: revealT; property: "y"; from: 28; to: 0; duration: 300; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
             }
         }
         ParallelAnimation {
@@ -424,7 +424,8 @@ Item {
             visible: effectiveSource !== ""
             source: effectiveSource
             fillMode: Image.PreserveAspectCrop
-            asynchronous: true
+            //同步加载:异步会在首帧后才出图,磨砂层晚到造成"开窗黑一下"
+            asynchronous: false
             mipmap: true
             opacity: 0.9
             onStatusChanged: if (status === Image.Ready) frostBg.scheduleUpdate()
@@ -690,10 +691,10 @@ Item {
         }
     }
 
-    //均衡器律动节拍(15fps,仅隧道页运行)
+    //均衡器律动节拍(40fps;240Hz 屏上低于 ~30fps 的动画肉眼可见顿挫)
     property real waveTime: 0
     Timer {
-        interval: 66
+        interval: 25
         running: root.currentPage === "tunnels"
         repeat: true
         onTriggered: root.waveTime = Date.now() / 1000
@@ -1096,7 +1097,7 @@ Item {
                     //页面切换时整页内容从下方弹入
                     transform: Translate {
                         y: tunnelsPageCol.visible ? 0 : 26
-                        Behavior on y { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
+                        Behavior on y { SpringAnimation { spring: 6; damping: 0.8; mass: 0.55 } }
                     }
 
                     // ===== bento 统计行(阶梯式入场) =====
@@ -1137,7 +1138,7 @@ Item {
 
                                 SequentialAnimation {
                                     id: runPop
-                                    NumberAnimation { target: runNumHop; property: "y"; from: -6; to: 0; duration: 220; easing.type: Easing.OutCubic }
+                                    NumberAnimation { target: runNumHop; property: "y"; from: -6; to: 0; duration: 170; easing.type: Easing.OutCubic }
                                 }
                             }
                         }
@@ -1167,7 +1168,7 @@ Item {
 
                                 SequentialAnimation {
                                     id: totalPop
-                                    NumberAnimation { target: totalNumHop; property: "y"; from: -6; to: 0; duration: 220; easing.type: Easing.OutCubic }
+                                    NumberAnimation { target: totalNumHop; property: "y"; from: -6; to: 0; duration: 170; easing.type: Easing.OutCubic }
                                 }
                             }
                         }
@@ -1276,7 +1277,7 @@ Item {
 
                                         SequentialAnimation {
                                             id: trafficPop
-                                            NumberAnimation { target: trafficNumHop; property: "y"; from: -5; to: 0; duration: 200; easing.type: Easing.OutCubic }
+                                            NumberAnimation { target: trafficNumHop; property: "y"; from: -5; to: 0; duration: 160; easing.type: Easing.OutCubic }
                                         }
                                     }
                                 }
@@ -1350,7 +1351,7 @@ Item {
                         transform: [
                             Translate {
                                 y: cardArea.containsMouse ? -6 : 0
-                                Behavior on y { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
+                                Behavior on y { SpringAnimation { spring: 6; damping: 0.8; mass: 0.55 } }
                             },
                             Rotation {
                                 id: tiltYaw
@@ -1720,7 +1721,7 @@ Item {
                     spacing: 0
                     transform: Translate {
                         y: nodesPage.visible ? 0 : 26
-                        Behavior on y { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
+                        Behavior on y { SpringAnimation { spring: 6; damping: 0.8; mass: 0.55 } }
                     }
 
                     // 筛选行:分类芯片 + 搜索框
@@ -1820,7 +1821,7 @@ Item {
                         opacity: nodesPage.visible ? 1 : 0
                         scale: nodesPage.visible ? 1 : 0.98
                         Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
-                        Behavior on scale { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
+                        Behavior on scale { SpringAnimation { spring: 6; damping: 0.8; mass: 0.55 } }
 
                         populate: Transition {
                             id: nodesPop
@@ -1852,7 +1853,7 @@ Item {
                                 color: cCard
                                 opacity: nodeCell.locked ? 0.55 : 1.0
                                 scale: nodeCardArea.containsMouse ? 1.02 : 1.0
-                                Behavior on scale { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
+                                Behavior on scale { SpringAnimation { spring: 6; damping: 0.8; mass: 0.55 } }
 
                                 ColumnLayout {
                                     anchors.fill: parent
@@ -1951,7 +1952,7 @@ Item {
                     spacing: 0
                     transform: Translate {
                         y: logPage.visible ? 0 : 26
-                        Behavior on y { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
+                        Behavior on y { SpringAnimation { spring: 6; damping: 0.8; mass: 0.55 } }
                     }
 
                     Rectangle {
@@ -2043,10 +2044,10 @@ Item {
                     scale: visible ? 1 : 0.98
                     transform: Translate {
                         y: settingsPage.visible ? 0 : 26
-                        Behavior on y { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
+                        Behavior on y { SpringAnimation { spring: 6; damping: 0.8; mass: 0.55 } }
                     }
                     Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
-                    Behavior on scale { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
+                    Behavior on scale { SpringAnimation { spring: 6; damping: 0.8; mass: 0.55 } }
 
                     ScrollBar.vertical: PinkScrollBar {}
 
@@ -2626,8 +2627,8 @@ Item {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         enter: Transition {
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-            NumberAnimation { property: "scale"; from: 0.92; to: 1; duration: 240; easing.type: Easing.OutBack }
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 170; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
+            NumberAnimation { property: "scale"; from: 0.94; to: 1; duration: 180; easing.type: Easing.OutBack }
         }
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionIn }
@@ -2734,8 +2735,8 @@ Item {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         enter: Transition {
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-            NumberAnimation { property: "scale"; from: 0.92; to: 1; duration: 240; easing.type: Easing.OutBack }
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 170; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
+            NumberAnimation { property: "scale"; from: 0.94; to: 1; duration: 180; easing.type: Easing.OutBack }
         }
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionIn }
@@ -2849,8 +2850,8 @@ Item {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         enter: Transition {
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-            NumberAnimation { property: "scale"; from: 0.92; to: 1; duration: 240; easing.type: Easing.OutBack }
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 170; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
+            NumberAnimation { property: "scale"; from: 0.94; to: 1; duration: 180; easing.type: Easing.OutBack }
         }
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionIn }
@@ -2983,8 +2984,8 @@ Item {
 
         //弹出/关闭动画:淡入 + 从略小弹出
         enter: Transition {
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-            NumberAnimation { property: "scale"; from: 0.92; to: 1; duration: 240; easing.type: Easing.OutBack }
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 170; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
+            NumberAnimation { property: "scale"; from: 0.94; to: 1; duration: 180; easing.type: Easing.OutBack }
         }
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionIn }
@@ -3648,8 +3649,8 @@ Item {
         property var nodeData: ({})
 
         enter: Transition {
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-            NumberAnimation { property: "scale"; from: 0.92; to: 1; duration: 240; easing.type: Easing.OutBack }
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 170; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
+            NumberAnimation { property: "scale"; from: 0.94; to: 1; duration: 180; easing.type: Easing.OutBack }
         }
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionIn }
@@ -3832,8 +3833,8 @@ Item {
         property var itemData: ({})
 
         enter: Transition {
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-            NumberAnimation { property: "scale"; from: 0.92; to: 1; duration: 240; easing.type: Easing.OutBack }
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 170; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
+            NumberAnimation { property: "scale"; from: 0.94; to: 1; duration: 180; easing.type: Easing.OutBack }
         }
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionIn }
