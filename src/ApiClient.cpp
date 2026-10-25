@@ -441,9 +441,51 @@ void ApiClient::saveToken()
 void ApiClient::loadSavedToken()
 {
     QSettings settings;
-    QString savedToken = settings.value("api_token").toString();
+    const QString savedToken = settings.value("api_token").toString().trimmed();
+    if (savedToken.isEmpty())
+        return;
 
-    if (!savedToken.isEmpty()) {
-        login(savedToken);
-    }
+    // 本地已有 token 时直接恢复登录界面,验证放到后台做。
+    // 不能因为启动时网络慢/超时就退回登录页,否则用户会以为 token 没被记住。
+    m_token = savedToken;
+    m_ready = true;
+    emit tokenChanged();
+    emit readyChanged();
+
+    QNetworkReply* reply = sendRequest("GET", "/user/info");
+    if (!reply)
+        return;
+
+    connect(reply, &QNetworkReply::finished, this, [this, reply, savedToken]() {
+        reply->deleteLater();
+        if (m_token != savedToken)
+            return;
+
+        const int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        const QJsonObject body = QJsonDocument::fromJson(reply->readAll()).object();
+        const int code = body.value("code").toInt();
+
+        if (reply->error() == QNetworkReply::NoError && statusCode < 400) {
+            saveToken();
+            emit userInfoReceived(body);
+            emit loginSuccess();
+            qInfo() << "[ApiClient] restored saved token";
+            return;
+        }
+
+        // 服务器明确拒绝 token 才清除本地凭据并回到登录页
+        if (statusCode == 401 || statusCode == 403 || code == 401 || code == 403) {
+            m_token.clear();
+            m_ready = false;
+            QSettings settings;
+            settings.remove("api_token");
+            emit tokenChanged();
+            emit readyChanged();
+            emit loginFailed(body.value("msg").toString(QStringLiteral("Token 已失效")));
+            return;
+        }
+
+        // 网络错误时保留 token 和主界面,不要要求用户重新输入
+        emit errorOccurred(QStringLiteral("暂时无法验证登录状态: %1").arg(reply->errorString()));
+    });
 }

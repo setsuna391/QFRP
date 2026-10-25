@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 
     // 分数缩放(1.2x)下 fontconfig 默认的 hintslight 会让笔画落在半像素上显得发虚,
     // 强制 full hinting 让笔画对齐物理像素网格(仅本进程生效,不改系统字体配置)
-    qputenv("QT_FREETYPE_PROPERTIES", "Noto Sans CJK SC:hintstyle=hintfull:hinting=true");
+    qputenv("QT_FREETYPE_PROPERTIES", "Noto Sans CJK SC:hintstyle=hintslight:hinting=true");
 
     // 资源(图标/内置壁纸/frpc)由 qt_add_resources 注册进本目标,
     // 其构造函数会在 main 之前自动初始化,无需手动 Q_INIT_RESOURCE

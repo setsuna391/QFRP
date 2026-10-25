@@ -3,7 +3,6 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtQuick.Effects
-import QtQuick.Particles
 import QtCore
 
 //主界面:左侧导航栏 + 右侧内容区(隧道/节点/日志/设置四个页面)
@@ -243,7 +242,7 @@ Item {
             PauseAnimation { duration: revealRoot.enterDelay }
             ParallelAnimation {
                 NumberAnimation { target: revealRoot; property: "opacity"; to: 1; duration: 280; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-                NumberAnimation { target: revealT; property: "y"; from: 40; to: 0; duration: 520; easing.type: Easing.OutBack }
+                NumberAnimation { target: revealT; property: "y"; from: 28; to: 0; duration: 380; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
             }
         }
         ParallelAnimation {
@@ -700,70 +699,6 @@ Item {
         onTriggered: root.waveTime = Date.now() / 1000
     }
 
-    // ===== 樱花粒子:点击爆发 + 彩蛋全屏樱花雨 =====
-    ParticleSystem { id: petalSystem }
-
-    ImageParticle {
-        system: petalSystem
-        source: "qrc:/assets/petal.png"
-        //贴图是近白色的,tint 上主题强调色后整片花瓣跟着主题变色
-        color: cAccent
-        alpha: 0.9
-        rotationVariation: 180
-        autoRotation: false
-    }
-
-    Emitter {
-        id: petalBurstEmitter
-        system: petalSystem
-        enabled: false
-        emitRate: 400
-        lifeSpan: 1500
-        maximumEmitted: 40
-        size: 16; sizeVariation: 8
-        velocity: AngleDirection { angle: -90; angleVariation: 180; magnitude: 130; magnitudeVariation: 80 }
-        acceleration: AngleDirection { angle: 90; angleVariation: 25; magnitude: 150 }
-    }
-
-    Emitter {
-        id: sakuraRainEmitter
-        system: petalSystem
-        width: root.width
-        x: 0; y: -30
-        enabled: false
-        emitRate: 55
-        lifeSpan: 5200
-        maximumEmitted: 240
-        size: 11; sizeVariation: 7
-        velocity: AngleDirection { angle: 90; angleVariation: 14; magnitude: 110; magnitudeVariation: 45 }
-        acceleration: AngleDirection { angle: 100; angleVariation: 20; magnitude: 28 }
-    }
-
-    function petalBurstAt(x, y) {
-        petalBurstEmitter.x = x - 8
-        petalBurstEmitter.y = y - 8
-        petalBurstEmitter.burst(22)
-    }
-
-    function sakuraRainBurst() {
-        sakuraRainEmitter.enabled = true
-        rainStopTimer.restart()
-    }
-
-    Timer {
-        id: rainStopTimer
-        interval: 3200
-        onTriggered: sakuraRainEmitter.enabled = false
-    }
-
-    //连点 logo 彩蛋:1.5 秒内点满 5 次 → 樱花雨
-    property int logoClicks: 0
-    Timer {
-        id: logoClickReset
-        interval: 1500
-        onTriggered: root.logoClicks = 0
-    }
-
     // ===== 主布局:顶栏(logo + 导航胶囊 + 用户) + 全宽内容区,无侧栏 =====
     ColumnLayout {
         anchors.fill: parent
@@ -802,15 +737,7 @@ Item {
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                logoBounce.restart()
-                                root.logoClicks++
-                                logoClickReset.restart()
-                                if (root.logoClicks >= 5) {
-                                    root.logoClicks = 0
-                                    root.sakuraRainBurst()
-                                }
-                            }
+                            onClicked: logoBounce.restart()
                         }
 
                         SequentialAnimation {
@@ -914,7 +841,7 @@ Item {
                                : createActionArea.containsMouse ? cAccentHover : cAccent
                         Behavior on color { ColorAnimation { duration: 120 } }
                         scale: !quotaFull && createActionArea.pressed ? 0.94 : (createActionArea.containsMouse && !quotaFull ? 1.04 : 1.0)
-                        Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                        Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                         Row {
                             anchors.centerIn: parent
@@ -960,7 +887,7 @@ Item {
                         color: refreshArea.containsMouse ? Theme.cHoverBg : Theme.cInputBg
                         Behavior on color { ColorAnimation { duration: 120 } }
                         scale: refreshArea.pressed ? 0.94 : (refreshArea.containsMouse ? 1.04 : 1.0)
-                        Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                        Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                         Row {
                             anchors.centerIn: parent
@@ -1017,7 +944,7 @@ Item {
                         color: clearLogArea.containsMouse ? Theme.cErrorBg : Theme.cInputBg
                         Behavior on color { ColorAnimation { duration: 120 } }
                         scale: clearLogArea.pressed ? 0.94 : (clearLogArea.containsMouse ? 1.04 : 1.0)
-                        Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                        Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                         Text {
                             anchors.centerIn: parent
@@ -1169,7 +1096,7 @@ Item {
                     //页面切换时整页内容从下方弹入
                     transform: Translate {
                         y: tunnelsPageCol.visible ? 0 : 26
-                        Behavior on y { SpringAnimation { spring: 3; damping: 0.55; mass: 1.0 } }
+                        Behavior on y { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
                     }
 
                     // ===== bento 统计行(阶梯式入场) =====
@@ -1210,7 +1137,7 @@ Item {
 
                                 SequentialAnimation {
                                     id: runPop
-                                    NumberAnimation { target: runNumHop; property: "y"; from: -8; to: 0; duration: 300; easing.type: Easing.OutBack }
+                                    NumberAnimation { target: runNumHop; property: "y"; from: -6; to: 0; duration: 220; easing.type: Easing.OutCubic }
                                 }
                             }
                         }
@@ -1240,7 +1167,7 @@ Item {
 
                                 SequentialAnimation {
                                     id: totalPop
-                                    NumberAnimation { target: totalNumHop; property: "y"; from: -8; to: 0; duration: 300; easing.type: Easing.OutBack }
+                                    NumberAnimation { target: totalNumHop; property: "y"; from: -6; to: 0; duration: 220; easing.type: Easing.OutCubic }
                                 }
                             }
                         }
@@ -1349,7 +1276,7 @@ Item {
 
                                         SequentialAnimation {
                                             id: trafficPop
-                                            NumberAnimation { target: trafficNumHop; property: "y"; from: -6; to: 0; duration: 300; easing.type: Easing.OutBack }
+                                            NumberAnimation { target: trafficNumHop; property: "y"; from: -5; to: 0; duration: 200; easing.type: Easing.OutCubic }
                                         }
                                     }
                                 }
@@ -1423,19 +1350,19 @@ Item {
                         transform: [
                             Translate {
                                 y: cardArea.containsMouse ? -6 : 0
-                                Behavior on y { SpringAnimation { spring: 3; damping: 0.55; mass: 1.0 } }
+                                Behavior on y { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
                             },
                             Rotation {
                                 id: tiltYaw
                                 axis { x: 0; y: 1; z: 0 }
                                 origin.x: tcard.width / 2; origin.y: tcard.height / 2
-                                Behavior on angle { SpringAnimation { spring: 3; damping: 0.5; mass: 0.9 } }
+                                Behavior on angle { SpringAnimation { spring: 5; damping: 0.8; mass: 0.6 } }
                             },
                             Rotation {
                                 id: tiltPitch
                                 axis { x: 1; y: 0; z: 0 }
                                 origin.x: tcard.width / 2; origin.y: tcard.height / 2
-                                Behavior on angle { SpringAnimation { spring: 3; damping: 0.5; mass: 0.9 } }
+                                Behavior on angle { SpringAnimation { spring: 5; damping: 0.8; mass: 0.6 } }
                             }
                         ]
 
@@ -1448,7 +1375,7 @@ Item {
                                 tiltPitch.angle = -(mouse.y / tcard.height - 0.5) * 6
                             }
                             onExited: { tiltYaw.angle = 0; tiltPitch.angle = 0 }
-                            onClicked: function(mouse) { root.petalBurstAt(mapToItem(root, mouse.x, mouse.y)) }
+
                         }
 
                         ColumnLayout {
@@ -1518,19 +1445,20 @@ Item {
                                 Item { Layout.fillWidth: true }
 
                                 Item {
+                                    id: cmdBtn
                                     Layout.preferredWidth: 20
                                     Layout.preferredHeight: 20
+                                    property bool cmdCopied: false
 
                                     AppIcon {
                                         anchors.centerIn: parent
                                         iconType: "copy"
-                                        iconColor: cmdCopied ? cSuccess : (cmdArea.containsMouse ? cAccent : cTextMuted)
+                                        iconColor: cmdBtn.cmdCopied ? cSuccess : (cmdArea.containsMouse ? cAccent : cTextMuted)
                                         width: 15
                                         height: 15
                                     }
 
-                                    property bool cmdCopied: false
-                                    Timer { id: cmdCopyReset; interval: 1600; onTriggered: parent.cmdCopied = false }
+                                    Timer { id: cmdCopyReset; interval: 1600; onTriggered: cmdBtn.cmdCopied = false }
                                     Ripple { id: cmdAreaRipple; anchors.fill: parent }
                                     MouseArea {
                                         id: cmdArea
@@ -1539,7 +1467,7 @@ Item {
                                         cursorShape: Qt.PointingHandCursor
                                         onClicked: {
                                             appSettings.copyText("frpc -f " + apiClient.token + ":" + t.id)
-                                            parent.cmdCopied = true
+                                            cmdBtn.cmdCopied = true
                                             cmdCopyReset.restart()
                                         }
                                     }
@@ -1738,7 +1666,7 @@ Item {
                                        : (running ? Theme.cInputBg : Theme.cSuccessBg)
                                 Behavior on color { ColorAnimation { duration: 140 } }
                                 scale: runArea.pressed ? 0.97 : 1.0
-                                Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                                Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                                 Row {
                                     anchors.centerIn: parent
@@ -1792,7 +1720,7 @@ Item {
                     spacing: 0
                     transform: Translate {
                         y: nodesPage.visible ? 0 : 26
-                        Behavior on y { SpringAnimation { spring: 3; damping: 0.55; mass: 1.0 } }
+                        Behavior on y { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
                     }
 
                     // 筛选行:分类芯片 + 搜索框
@@ -1815,7 +1743,7 @@ Item {
                                 color: isActive ? cAccent : Theme.cInputBg
                                 Behavior on color { ColorAnimation { duration: 150 } }
                                 scale: filterArea.pressed ? 0.96 : 1.0
-                                Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                                Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                                 Row {
                                     id: filterRow
@@ -1892,7 +1820,7 @@ Item {
                         opacity: nodesPage.visible ? 1 : 0
                         scale: nodesPage.visible ? 1 : 0.98
                         Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
-                        Behavior on scale { SpringAnimation { spring: 3; damping: 0.55; mass: 1.0 } }
+                        Behavior on scale { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
 
                         populate: Transition {
                             id: nodesPop
@@ -1924,7 +1852,7 @@ Item {
                                 color: cCard
                                 opacity: nodeCell.locked ? 0.55 : 1.0
                                 scale: nodeCardArea.containsMouse ? 1.02 : 1.0
-                                Behavior on scale { SpringAnimation { spring: 3; damping: 0.55; mass: 1.0 } }
+                                Behavior on scale { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
 
                                 ColumnLayout {
                                     anchors.fill: parent
@@ -2023,7 +1951,7 @@ Item {
                     spacing: 0
                     transform: Translate {
                         y: logPage.visible ? 0 : 26
-                        Behavior on y { SpringAnimation { spring: 3; damping: 0.55; mass: 1.0 } }
+                        Behavior on y { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
                     }
 
                     Rectangle {
@@ -2115,10 +2043,10 @@ Item {
                     scale: visible ? 1 : 0.98
                     transform: Translate {
                         y: settingsPage.visible ? 0 : 26
-                        Behavior on y { SpringAnimation { spring: 3; damping: 0.55; mass: 1.0 } }
+                        Behavior on y { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
                     }
                     Behavior on opacity { NumberAnimation { duration: 200; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut } }
-                    Behavior on scale { SpringAnimation { spring: 3; damping: 0.55; mass: 1.0 } }
+                    Behavior on scale { SpringAnimation { spring: 4.5; damping: 0.75; mass: 0.7 } }
 
                     ScrollBar.vertical: PinkScrollBar {}
 
@@ -2165,7 +2093,7 @@ Item {
                                             color: Theme.current === index ? Theme.cAccent : Theme.cInputBg
                                             Behavior on color { ColorAnimation { duration: 150 } }
                                             scale: chipArea.pressed ? 0.96 : (chipArea.containsMouse ? 1.04 : 1.0)
-                                            Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                                            Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                                             Row {
                                                 id: chipRow
@@ -2366,7 +2294,7 @@ Item {
                                         color: dlFrpcArea.containsMouse ? Theme.cHoverBg : Theme.cInputBg
                                         Behavior on color { ColorAnimation { duration: 120 } }
                                         scale: dlFrpcArea.containsMouse ? 1.05 : 1.0
-                                        Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                                        Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                                         Text {
                                             anchors.centerIn: parent
@@ -2420,7 +2348,7 @@ Item {
                                         color: wpPickArea.containsMouse ? Theme.cHoverBg : Theme.cInputBg
                                         Behavior on color { ColorAnimation { duration: 120 } }
                                         scale: wpPickArea.containsMouse ? 1.05 : 1.0
-                                        Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                                        Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                                         Text {
                                             anchors.centerIn: parent
@@ -2447,7 +2375,7 @@ Item {
                                         color: wpClearArea.containsMouse ? Theme.cErrorBg : Theme.cInputBg
                                         Behavior on color { ColorAnimation { duration: 120 } }
                                         scale: wpClearArea.containsMouse ? 1.05 : 1.0
-                                        Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                                        Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                                         Text {
                                             anchors.centerIn: parent
@@ -2653,7 +2581,7 @@ Item {
                             color: logoutBtnArea.containsMouse ? Theme.cError : Theme.cErrorBg
                             Behavior on color { ColorAnimation { duration: 120 } }
                             scale: logoutBtnArea.pressed ? 0.97 : (logoutBtnArea.containsMouse ? 1.04 : 1.0)
-                            Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                            Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                             Text {
                                 anchors.centerIn: parent
@@ -2699,7 +2627,7 @@ Item {
 
         enter: Transition {
             NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-            NumberAnimation { property: "scale"; from: 0.88; to: 1; duration: 300; easing.type: Easing.OutBack }
+            NumberAnimation { property: "scale"; from: 0.92; to: 1; duration: 240; easing.type: Easing.OutBack }
         }
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionIn }
@@ -2745,7 +2673,7 @@ Item {
                     color: quitCancelArea.containsMouse ? Theme.cHoverBg : Theme.cInputBg
                     Behavior on color { ColorAnimation { duration: 120 } }
                     scale: quitCancelArea.pressed ? 0.96 : (quitCancelArea.containsMouse ? 1.04 : 1.0)
-                    Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                    Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                     Text {
                         anchors.centerIn: parent
@@ -2771,7 +2699,7 @@ Item {
                     color: quitConfirmArea.containsMouse ? Theme.cAccentHover : Theme.cError
                     Behavior on color { ColorAnimation { duration: 120 } }
                     scale: quitConfirmArea.pressed ? 0.96 : (quitConfirmArea.containsMouse ? 1.04 : 1.0)
-                    Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                    Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                     Text {
                         anchors.centerIn: parent
@@ -2807,7 +2735,7 @@ Item {
 
         enter: Transition {
             NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-            NumberAnimation { property: "scale"; from: 0.88; to: 1; duration: 300; easing.type: Easing.OutBack }
+            NumberAnimation { property: "scale"; from: 0.92; to: 1; duration: 240; easing.type: Easing.OutBack }
         }
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionIn }
@@ -2853,7 +2781,7 @@ Item {
                     color: delCancelArea.containsMouse ? Theme.cHoverBg : Theme.cInputBg
                     Behavior on color { ColorAnimation { duration: 120 } }
                     scale: delCancelArea.pressed ? 0.96 : (delCancelArea.containsMouse ? 1.04 : 1.0)
-                    Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                    Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                     Text {
                         anchors.centerIn: parent
@@ -2882,7 +2810,7 @@ Item {
                     color: delConfirmArea.containsMouse ? Theme.cAccentHover : Theme.cError
                     Behavior on color { ColorAnimation { duration: 120 } }
                     scale: delConfirmArea.pressed ? 0.96 : (delConfirmArea.containsMouse ? 1.04 : 1.0)
-                    Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                    Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                     Text {
                         anchors.centerIn: parent
@@ -2922,7 +2850,7 @@ Item {
 
         enter: Transition {
             NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-            NumberAnimation { property: "scale"; from: 0.88; to: 1; duration: 300; easing.type: Easing.OutBack }
+            NumberAnimation { property: "scale"; from: 0.92; to: 1; duration: 240; easing.type: Easing.OutBack }
         }
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionIn }
@@ -2968,7 +2896,7 @@ Item {
                     color: logoutCancelArea.containsMouse ? Theme.cHoverBg : Theme.cInputBg
                     Behavior on color { ColorAnimation { duration: 120 } }
                     scale: logoutCancelArea.pressed ? 0.96 : (logoutCancelArea.containsMouse ? 1.04 : 1.0)
-                    Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                    Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                     Text {
                         anchors.centerIn: parent
@@ -2994,7 +2922,7 @@ Item {
                     color: logoutConfirmArea.containsMouse ? Theme.cAccentHover : Theme.cError
                     Behavior on color { ColorAnimation { duration: 120 } }
                     scale: logoutConfirmArea.pressed ? 0.96 : (logoutConfirmArea.containsMouse ? 1.04 : 1.0)
-                    Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                    Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                     Text {
                         anchors.centerIn: parent
@@ -3056,7 +2984,7 @@ Item {
         //弹出/关闭动画:淡入 + 从略小弹出
         enter: Transition {
             NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-            NumberAnimation { property: "scale"; from: 0.88; to: 1; duration: 300; easing.type: Easing.OutBack }
+            NumberAnimation { property: "scale"; from: 0.92; to: 1; duration: 240; easing.type: Easing.OutBack }
         }
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionIn }
@@ -3590,7 +3518,7 @@ Item {
                     color: cancelCreateArea.containsMouse ? Theme.cHoverBg : Theme.cInputBg
                     Behavior on color { ColorAnimation { duration: 120 } }
                     scale: cancelCreateArea.pressed ? 0.96 : (cancelCreateArea.containsMouse ? 1.04 : 1.0)
-                    Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                    Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                     Text {
                         anchors.centerIn: parent
@@ -3616,7 +3544,7 @@ Item {
                     color: confirmCreateArea.containsMouse ? cAccentHover : cAccent
                     Behavior on color { ColorAnimation { duration: 120 } }
                     scale: confirmCreateArea.pressed ? 0.96 : (confirmCreateArea.containsMouse ? 1.04 : 1.0)
-                    Behavior on scale { SpringAnimation { spring: 3.5; damping: 0.6; mass: 0.8 } }
+                    Behavior on scale { SpringAnimation { spring: 5; damping: 0.75; mass: 0.6 } }
 
                     Text {
                         anchors.centerIn: parent
@@ -3721,7 +3649,7 @@ Item {
 
         enter: Transition {
             NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-            NumberAnimation { property: "scale"; from: 0.88; to: 1; duration: 300; easing.type: Easing.OutBack }
+            NumberAnimation { property: "scale"; from: 0.92; to: 1; duration: 240; easing.type: Easing.OutBack }
         }
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionIn }
@@ -3905,7 +3833,7 @@ Item {
 
         enter: Transition {
             NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 220; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
-            NumberAnimation { property: "scale"; from: 0.88; to: 1; duration: 300; easing.type: Easing.OutBack }
+            NumberAnimation { property: "scale"; from: 0.92; to: 1; duration: 240; easing.type: Easing.OutBack }
         }
         exit: Transition {
             NumberAnimation { property: "opacity"; from: 1; to: 0; duration: 160; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionIn }
