@@ -1,5 +1,5 @@
 {
-  description = "Development environment for QML_FRPC";
+  description = "QFRP — QML GUI FRPC (SakuraFrp tunnel manager)";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/73e728ddb6b7a12d18808f510813a13ee1fe4cce";
 
@@ -8,6 +8,22 @@
       system = "x86_64-linux";
       pkgs = import nixpkgs { inherit system; };
     in {
+      # ===== 包 =====
+      packages.${system} = rec {
+        qml-frpc = pkgs.qt6Packages.callPackage ./nix/package.nix { src = self; };
+        default = qml-frpc;
+      };
+
+      apps.${system}.default = {
+        type = "app";
+        program = "${self.packages.${system}.qml-frpc}/bin/QML_FRPC";
+      };
+
+      # ===== NixOS / home-manager 模块 =====
+      nixosModules.default = import ./nix/module.nix self;
+      nixosModules.qml-frpc = self.nixosModules.default;
+
+      # ===== 开发环境(保留) =====
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
           cmake

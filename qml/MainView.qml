@@ -627,7 +627,6 @@ Item {
         }
 
 
-        function onFrpcDownloadStarted2() { root.frpcUpdating = true }
     }
 
     // ===== 函数 =====
