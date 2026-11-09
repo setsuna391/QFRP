@@ -1,6 +1,8 @@
 # QFRP
 
-**QML-GUI-FRPC** —— 基于 Qt6 / QML 的 [SakuraFrp (natfrp)](https://www.natfrp.com/) 内网穿透隧道管理客户端,面向 Linux 桌面(重点适配 Wayland + 平铺合成器,兼容 Windows)。
+**QML-GUI-FRPC** —— 基于 Qt6 / QML 的 [SakuraFrp (natfrp)](https://www.natfrp.com/) 内网穿透隧道管理客户端,面向 Linux 桌面(重点适配 Wayland + 平铺合成器)。
+
+> **Windows 版本目前无法运行，暂不支持 Windows。**
 
 > 名字来源:QML-GUI-FRPC 的缩写。
 
