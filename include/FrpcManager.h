@@ -60,6 +60,8 @@ public:
 
     //把当前存活的 frpc pid 写入状态文件;正常退出时由 main 调用,QML 也可手动调用
     Q_INVOKABLE void saveState() const;
+    //应用正常退出时释放对运行中 QProcess 的所有权,让 frpc 继续运行。
+    void prepareForExit();
 
 public slots:
     //强制停止全部(含后台接管进程)。正常退出不会调用它——frpc 要继续在后台跑
@@ -68,6 +70,7 @@ public slots:
 signals:
     void started(const QString& tunnelId);
     void stopped(const QString& tunnelId, int exitCode);
+    void unexpectedExit(const QString& tunnelId);
     void startFailed(const QString& tunnelId, const QString& reason);
     void frpcOutput(const QString& tunnelId, const QString& line);
     void frpcPathChanged();

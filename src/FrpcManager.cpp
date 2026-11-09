@@ -295,8 +295,10 @@ void FrpcManager::startTunnel(const QString& tunnelId, const QString& binary)
         const bool userInitiated = m_userStopped.contains(tunnelId);
         cleanupProcess(tunnelId);
         emit stopped(tunnelId, exitCode);
-        if (!userInitiated)
+        if (!userInitiated) {
+            emit unexpectedExit(tunnelId);
             scheduleRestart(tunnelId, binary);
+        }
     });
     m_procs.insert(tunnelId, {proc, 0});
     proc->start(binary, {QStringLiteral("-f"), token + ":" + tunnelId});
@@ -412,6 +414,7 @@ void FrpcManager::pollAdopted()
     for (const QString& id : dead) {
         cleanupProcess(id);
         emit stopped(id, 0);
+        emit unexpectedExit(id);
         scheduleRestart(id, QString());
     }
 }
@@ -517,6 +520,20 @@ void FrpcManager::saveState() const
         return;
     }
     qInfo().noquote() << "[FrpcManager] state saved:" << json;
+}
+
+void FrpcManager::prepareForExit()
+{
+    saveState();
+    for (auto it = m_procs.begin(); it != m_procs.end(); ++it) {
+        QProcess* proc = it.value().proc;
+        if (!proc || proc->state() == QProcess::NotRunning)
+            continue;
+        // QProcess 析构会杀死仍在运行的子进程。进程退出时有意保留该
+        // 对象,由操作系统回收内存,而 frpc 保持运行并在下次启动时接管。
+        proc->disconnect(this);
+        proc->setParent(nullptr);
+    }
 }
 
 void FrpcManager::watchLogFile(const QString& tunnelId)

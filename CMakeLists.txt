@@ -8,6 +8,9 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick Network)
+if(UNIX AND NOT APPLE)
+    find_package(Qt6 REQUIRED COMPONENTS DBus)
+endif()
 
 # Qt Quick QML modules may be installed separately from Qt Base (notably on NixOS).
 get_filename_component(QT6_QML_IMPORT_PATH "${Qt6Quick_DIR}/../../qt-6/qml" REALPATH)
@@ -51,6 +54,9 @@ target_link_libraries(QML_FRPC PRIVATE
     Qt6::Quick
     Qt6::Network
 )
+if(UNIX AND NOT APPLE)
+    target_link_libraries(QML_FRPC PRIVATE Qt6::DBus)
+endif()
 
 # Nix's split Qt packages expose forwarding headers that include paths such as
 # <QtCore/qobject.h>; include the Qt package's top-level include directory too.

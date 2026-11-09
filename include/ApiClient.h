@@ -169,9 +169,13 @@ public:
     Q_INVOKABLE void getSystemClients();
     Q_INVOKABLE void editTunnel(const QJsonObject& params);
     Q_INVOKABLE void getBulletin();
+    Q_INVOKABLE void diagnoseNode(const QString& host);
+    Q_INVOKABLE void checkLocalService(const QString& host, int port);
     //获取隧道配置函数,外部可以调用
     //发送 POST /tunnel/config 请求获取 frpc 配置文件(纯文本),成功后发射 tunnelConfigReceived
 signals:
+    void nodeDiagnosticResult(const QString& host, const QString& message);
+    void localServiceCheckResult(const QString& host, int port, const QString& message);
     void readyChanged();
     //信号,当 ApiClient 的准备状态发生变化时发射,外部可以连接该信号以更新界面
     void tokenChanged();

@@ -112,7 +112,7 @@ Item {
         for (var i = 0; i < root.nodes.length; i++) {
             var n = root.nodes[i]
             var v = n.vip || 0
-            var item = { name: n.name, id: n.id, vip: v, usable: v <= level,
+            var item = { name: n.name, id: n.id, host: n.host || "", vip: v, usable: v <= level,
                          sectionKey: v <= level ? "当前账号可用" : "需要更高用户组" }
             if (item.usable) usable.push(item)
             else locked.push(item)
@@ -157,6 +157,7 @@ Item {
 
     function openNodeDetail(n) {
         nodeDetailPopup.nodeData = n
+        nodeDetailPopup.diagnosticText = ""
         nodeDetailPopup.open()
     }
 
@@ -184,6 +185,52 @@ Item {
 
     // ===== 日志模型 =====
     ListModel { id: logModel }
+    ListModel { id: filteredLogModel }
+    property string logKeyword: ""
+    property string logLevel: "all"
+    property var disconnectedTunnels: ({})
+    onLogKeywordChanged: rebuildLogFilter()
+    onLogLevelChanged: rebuildLogFilter()
+    Connections { target: logModel; function onCountChanged() { if (logModel.count === 0) filteredLogModel.clear() } }
+
+    function logMatches(row) {
+        return (logLevel === "all" || row.level === logLevel)
+            && (!logKeyword || String(row.msg).toLowerCase().indexOf(logKeyword.toLowerCase()) >= 0)
+    }
+
+    function rebuildLogFilter() {
+        filteredLogModel.clear()
+        for (var i = 0; i < logModel.count; i++) {
+            var row = logModel.get(i)
+            if (!logMatches(row)) continue
+            filteredLogModel.append({ time: row.time, msg: row.msg, level: row.level })
+        }
+    }
+
+    FileDialog {
+        id: exportLogDialog
+        title: "导出当前筛选的日志"
+        fileMode: FileDialog.SaveFile
+        nameFilters: ["文本文件 (*.txt)", "所有文件 (*)"]
+        onAccepted: {
+            var lines = []
+            for (var i = 0; i < filteredLogModel.count; i++) {
+                var row = filteredLogModel.get(i)
+                lines.push("[" + row.time + "] [" + row.level + "] " + row.msg)
+            }
+            var error = appSettings.exportLog(String(selectedFile), lines.join("\n") + "\n")
+            addLog(error ? "日志导出失败：" + error : "日志已导出；分享前请检查地址等敏感信息。", error ? "error" : "success")
+        }
+    }
+
+    function markDisconnected(tunnelId) {
+        var id = String(tunnelId)
+        if (disconnectedTunnels[id]) return
+        var state = Object.assign({}, disconnectedTunnels)
+        state[id] = true
+        disconnectedTunnels = state
+        appSettings.notify("隧道连接异常", "隧道 " + tunnelName(id) + " 连接异常，请查看日志。")
+    }
 
     //粉色细滚动条,供各列表复用
     //自定义了 contentItem 会失去 Basic 样式自带的"内容不满一屏时隐藏"逻辑,
@@ -605,15 +652,30 @@ Item {
             var nd = Object.assign({}, root.startedAt)
             delete nd[String(tunnelId)]
             root.startedAt = nd
+            var states = Object.assign({}, root.disconnectedTunnels)
+            delete states[String(tunnelId)]
+            root.disconnectedTunnels = states
             addLog("frpc 已退出 (隧道 " + tunnelId + ", 退出码 " + exitCode + ")",
                    exitCode === 0 ? "info" : "warning")
         }
         function onStartFailed(tunnelId, reason) {
             addLog("启动失败 (隧道 " + tunnelId + "): " + reason, "error")
         }
+        function onUnexpectedExit(tunnelId) { root.markDisconnected(tunnelId) }
         //frpc 的 stdout/stderr 按行进日志页,同时累计到活动波形
         function onFrpcOutput(tunnelId, line) {
-            addLog("frpc:" + tunnelId + " " + line, "info")
+            var isError = /\[(E|ERROR)\]/i.test(line)
+            var isWarning = /\[(W|WARN|WARNING)\]/i.test(line)
+            addLog("frpc:" + tunnelId + " " + line, isError ? "error" : isWarning ? "warning" : "info")
+            if (line.indexOf("登录节点失败") >= 0 || line.indexOf("控制连接读取失败") >= 0
+                || line.indexOf("控制连接写入失败") >= 0)
+                root.markDisconnected(tunnelId)
+            else if (line.indexOf("隧道启动成功") >= 0 && root.disconnectedTunnels[String(tunnelId)]) {
+                var states = Object.assign({}, root.disconnectedTunnels)
+                delete states[String(tunnelId)]
+                root.disconnectedTunnels = states
+                appSettings.notify("隧道已重新连接", "隧道 " + root.tunnelName(tunnelId) + " 已重新连接。")
+            }
         }
         //frpc 二进制自动下载
         function onFrpcDownloadStarted() {
@@ -634,13 +696,18 @@ Item {
 
     // ===== 函数 =====
     function addLog(msg, level) {
-        logModel.append({
+        var row = {
             time: Qt.formatDateTime(new Date(), "hh:mm:ss"),
             msg: msg,
             level: level || "info"
-        })
-        if (logModel.count > 500)
+        }
+        logModel.append(row)
+        if (logMatches(row)) filteredLogModel.append(row)
+        if (logModel.count > 500) {
+            if (logMatches(logModel.get(0)) && filteredLogModel.count > 0)
+                filteredLogModel.remove(0)
             logModel.remove(0)
+        }
     }
 
     function refreshData() {
@@ -1964,10 +2031,59 @@ Item {
                         Behavior on y { SpringAnimation { spring: 6; damping: 0.8; mass: 0.55 } }
                     }
 
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Layout.leftMargin: 24
+                        Layout.rightMargin: 24
+                        Layout.topMargin: 20
+                        spacing: 8
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 36
+                            radius: 10
+                            color: Theme.cInputBg
+                            TextField {
+                                anchors.fill: parent
+                                placeholderText: "搜索日志或隧道 ID…"
+                                placeholderTextColor: cTextMuted
+                                color: cText
+                                background: null
+                                leftPadding: 12
+                                selectByMouse: true
+                                onTextChanged: root.logKeyword = text
+                            }
+                        }
+                        Repeater {
+                            model: [
+                                { key: "all", label: "全部" },
+                                { key: "warning", label: "警告" },
+                                { key: "error", label: "错误" }
+                            ]
+                            Rectangle {
+                                required property var modelData
+                                Layout.preferredWidth: 54
+                                Layout.preferredHeight: 36
+                                radius: 10
+                                color: root.logLevel === modelData.key ? cAccent : Theme.cInputBg
+                                Text { anchors.centerIn: parent; text: modelData.label; color: root.logLevel === modelData.key ? "#ffffff" : cText; font.pixelSize: 12 }
+                                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.logLevel = modelData.key }
+                            }
+                        }
+                        Rectangle {
+                            Layout.preferredWidth: 76
+                            Layout.preferredHeight: 36
+                            radius: 10
+                            color: exportLogArea.containsMouse ? Theme.cHoverBg : Theme.cInputBg
+                            Text { anchors.centerIn: parent; text: "导出日志"; color: cAccent; font.pixelSize: 12; font.bold: true }
+                            MouseArea { id: exportLogArea; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: exportLogDialog.open() }
+                        }
+                    }
+
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         Layout.margins: 24
+                        Layout.topMargin: 12
                         radius: 14
                         color: cCard
 
@@ -1976,7 +2092,7 @@ Item {
                             anchors.fill: parent
                             anchors.margins: 16
                             SmoothWheel { flick: logView }
-                            model: logModel
+                            model: filteredLogModel
                             clip: true
                             spacing: 5
 
@@ -2028,8 +2144,8 @@ Item {
 
                             Text {
                                 anchors.centerIn: parent
-                                visible: logModel.count === 0
-                                text: "暂无日志"
+                                visible: filteredLogModel.count === 0
+                                text: logModel.count === 0 ? "暂无日志" : "没有匹配的日志"
                                 color: cTextMuted
                                 font.pixelSize: 14
                             }
@@ -2972,6 +3088,13 @@ Item {
 
         //编辑模式:非空时弹窗变为编辑隧道(/tunnel/edit 仅支持 备注/本地IP/本地端口)
         property var editing: null
+        readonly property var selectedNode: {
+            var id = editing ? editing.node : createNode.currentValue
+            for (var i = 0; i < root.nodes.length; i++) {
+                if (String(root.nodes[i].id) === String(id)) return root.nodes[i]
+            }
+            return null
+        }
 
         function openCreate() {
             editing = null
@@ -3021,12 +3144,32 @@ Item {
             anchors.margins: 28
             spacing: 10
 
-            Text {
-                text: createPopup.editing ? "编辑隧道" : "新建隧道"
-                color: cText
-                font.pixelSize: 18
-                font.bold: true
+            RowLayout {
                 Layout.fillWidth: true
+                Text {
+                    Layout.fillWidth: true
+                    text: createPopup.editing ? "编辑隧道" : "新建隧道"
+                    color: cText
+                    font.pixelSize: 18
+                    font.bold: true
+                }
+                Rectangle {
+                    Layout.preferredWidth: 88
+                    Layout.preferredHeight: 32
+                    radius: 10
+                    color: detailsButtonArea.containsMouse ? Theme.cHoverBg : Theme.cInputBg
+                    border.width: 1
+                    border.color: detailsButtonArea.containsMouse ? cAccent : "transparent"
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    Text { anchors.centerIn: parent; text: "查看详情"; color: cAccent; font.pixelSize: 12; font.bold: true }
+                    MouseArea {
+                        id: detailsButtonArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: createDetailsPopup.open()
+                    }
+                }
             }
 
             // 隧道名称
@@ -3204,7 +3347,7 @@ Item {
                                 readonly property bool usable: model["usable"] !== false
 
                                 width: createNode.width - 8
-                                height: 32
+                                height: 50
                                 opacity: usable ? 1.0 : 0.45
                                 hoverEnabled: true
                                 highlighted: createNode.highlightedIndex === nodeItem.index
@@ -3232,13 +3375,27 @@ Item {
                                         }
                                     }
 
-                                    Text {
+                                    ColumnLayout {
                                         Layout.fillWidth: true
-                                        text: nodeItem.model[createNode.textRole] !== undefined ? nodeItem.model[createNode.textRole] : ""
-                                        color: nodeItem.usable ? (nodeItem.hovered || nodeItem.highlighted ? "#ffffff" : cText) : cTextMuted
-                                        font.pixelSize: 13
-                                        verticalAlignment: Text.AlignVCenter
-                                        elide: Text.ElideRight
+                                        spacing: 2
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: nodeItem.model[createNode.textRole] || "未命名节点"
+                                            color: nodeItem.usable ? (nodeItem.hovered || nodeItem.highlighted ? "#ffffff" : cText) : cTextMuted
+                                            font.pixelSize: 13
+                                            elide: Text.ElideRight
+                                        }
+                                        Text {
+                                            Layout.fillWidth: true
+                                            text: {
+                                                var st = (root.nodeLoad || {})[String(nodeItem.model["id"])]
+                                                return (nodeItem.model["host"] || "无接入地址")
+                                                    + (st && st.load !== undefined ? " · 负载 " + st.load + "%" : " · 负载未知")
+                                            }
+                                            color: nodeItem.usable && (nodeItem.hovered || nodeItem.highlighted) ? "#ffffff" : cTextMuted
+                                            font.pixelSize: 10
+                                            elide: Text.ElideRight
+                                        }
                                     }
 
                                     Text {
@@ -3646,16 +3803,149 @@ Item {
         }
     }
 
+    //创建前预览当前表单,不发送请求或改变输入。
+    Popup {
+        id: createDetailsPopup
+        width: Math.min(460, root.width - 32)
+        height: Math.min(500, root.height - 32)
+        anchors.centerIn: parent
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        property string localCheckText: ""
+        property string checkedHost: ""
+        property int checkedPort: 0
+        property string checkedType: ""
+        readonly property string tunnelType: createPopup.editing
+                                            ? String(createPopup.editing.type || "").toUpperCase()
+                                            : createType.currentText
+        onAboutToShow: localCheckText = ""
+        Connections {
+            target: apiClient
+            function onLocalServiceCheckResult(host, port, message) {
+                if (createDetailsPopup.visible && host === createDetailsPopup.checkedHost
+                    && port === createDetailsPopup.checkedPort
+                    && createDetailsPopup.checkedType === createDetailsPopup.tunnelType)
+                    createDetailsPopup.localCheckText = message
+            }
+        }
+        background: Rectangle { color: Qt.alpha(Theme.cCard, 0.97); radius: 20 }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 24
+            spacing: 12
+            Text { text: "隧道与节点详情"; color: cText; font.pixelSize: 18; font.bold: true }
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                TextArea {
+                    readOnly: true
+                    selectByMouse: true
+                    wrapMode: TextEdit.Wrap
+                    color: cText
+                    font.pixelSize: 13
+                    background: null
+                    text: {
+                        var node = createPopup.selectedNode
+                        var edit = createPopup.editing
+                        var type = edit ? String(edit.type || "未知").toUpperCase() : createType.currentText
+                        var isHttp = type === "HTTP" || type === "HTTPS"
+                        var remote = edit ? String(edit.remote || "未知")
+                                   : isHttp ? (createRemoteDomain.text.trim() || "未填写")
+                                   : (createRemotePort.text.trim() || "由服务器随机分配")
+                        var load = node ? (root.nodeLoad || {})[String(node.id)] : null
+                        return "隧道配置\n"
+                            + "名称：" + (createName.text.trim() || "未命名隧道") + "\n"
+                            + "备注：" + (createNote.text.trim() || "无") + "\n"
+                            + "协议：" + type + "\n"
+                            + "本地 IP：" + (createLocalIp.text.trim() || "127.0.0.1") + "\n"
+                            + "本地端口：" + (createLocalPort.text.trim() || "未填写") + "\n"
+                            + (isHttp ? "绑定域名：" : "远程端口：") + remote + "\n\n"
+                            + "节点信息\n"
+                            + "名称：" + (node ? (node.name || "未命名") : "未选择或未找到") + "\n"
+                            + "节点 ID：" + (node ? String(node.id) : "未知") + "\n"
+                            + "接入地址：" + (node ? (node.host || "未知") : "未知") + "\n"
+                            + "使用限制：" + (node ? root.nodeTierLabel(node.vip || 0) : "未知") + "\n"
+                            + "节点负载：" + (load && load.load !== undefined ? load.load + "%" : "未知") + "\n"
+                            + "节点说明：" + (node ? (node.description || "无") : "未知") + "\n\n"
+                            + "预览仅供确认，最终结果以服务器创建结果为准。"
+                    }
+                }
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 40
+                radius: 10
+                color: localCheckArea.containsMouse ? cAccentHover : cAccent
+                Behavior on color { ColorAnimation { duration: 120 } }
+                Text { anchors.centerIn: parent; text: "检查本地服务"; color: "#ffffff"; font.pixelSize: 14; font.bold: true }
+                MouseArea {
+                    id: localCheckArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        createDetailsPopup.checkedHost = createLocalIp.text.trim() || "127.0.0.1"
+                        createDetailsPopup.checkedPort = Number(createLocalPort.text)
+                        createDetailsPopup.checkedType = createDetailsPopup.tunnelType
+                        if (createDetailsPopup.tunnelType === "UDP") {
+                            createDetailsPopup.localCheckText = "UDP 无法通过简单连接确认服务可用，请使用对应客户端测试。"
+                        } else if (["TCP", "HTTP", "HTTPS"].indexOf(createDetailsPopup.tunnelType) < 0) {
+                            createDetailsPopup.localCheckText = "未知协议，无法检查本地服务。"
+                        } else {
+                            createDetailsPopup.localCheckText = "正在检查 TCP 连接…"
+                            apiClient.checkLocalService(createDetailsPopup.checkedHost, createDetailsPopup.checkedPort)
+                        }
+                    }
+                }
+            }
+            Text {
+                Layout.fillWidth: true
+                visible: createDetailsPopup.localCheckText !== ""
+                text: createDetailsPopup.localCheckText
+                color: cTextSec
+                font.pixelSize: 12
+                wrapMode: Text.WordWrap
+            }
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 40
+                radius: 10
+                color: detailsCloseArea.containsMouse ? Theme.cHoverBg : Theme.cInputBg
+                Behavior on color { ColorAnimation { duration: 120 } }
+                Text { anchors.centerIn: parent; text: "返回编辑"; color: cText; font.pixelSize: 14 }
+                MouseArea {
+                    id: detailsCloseArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: createDetailsPopup.close()
+                }
+            }
+        }
+    }
+
     // 节点详情弹窗(仿 web 面板的节点详情)
     Popup {
         id: nodeDetailPopup
         width: 460
-        height: 440
+        height: Math.min(580, root.height - 32)
         anchors.centerIn: parent
         modal: true
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         property var nodeData: ({})
+        property string diagnosticText: ""
+
+        Connections {
+            target: apiClient
+            function onNodeDiagnosticResult(host, message) {
+                if (nodeDetailPopup.visible && host === String(nodeDetailPopup.nodeData.host || ""))
+                    nodeDetailPopup.diagnosticText += (nodeDetailPopup.diagnosticText ? "\n" : "") + message
+            }
+        }
 
         enter: Transition {
             NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 170; easing.type: Easing.Bezier; easing.bezierCurve: Theme.motionOut }
@@ -3802,7 +4092,43 @@ Item {
                 }
             }
 
-            Item { Layout.fillHeight: true }
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 38
+                radius: 10
+                color: diagnosticArea.containsMouse ? Theme.cHoverBg : Theme.cInputBg
+                Text {
+                    anchors.centerIn: parent
+                    text: "一键网络诊断"
+                    color: cText
+                    font.pixelSize: 14
+                }
+                MouseArea {
+                    id: diagnosticArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        nodeDetailPopup.diagnosticText = "正在检查 DNS、路由和节点 8880 端口…"
+                        apiClient.diagnoseNode(String(nodeDetailPopup.nodeData.host || ""))
+                    }
+                }
+            }
+
+            ScrollView {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                TextArea {
+                    readOnly: true
+                    text: nodeDetailPopup.diagnosticText || "点击上方按钮检查节点网络。诊断不会修改网络设置。"
+                    color: cTextSec
+                    font.pixelSize: 12
+                    wrapMode: TextEdit.Wrap
+                    selectByMouse: true
+                    background: null
+                }
+            }
 
             Rectangle {
                 Layout.fillWidth: true

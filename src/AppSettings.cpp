@@ -1,4 +1,5 @@
 #include "AppSettings.h"
+#include "ApiClient.h"
 
 #include <QClipboard>
 #include <QDir>
@@ -6,9 +7,16 @@
 #include <QFileInfo>
 #include <QGuiApplication>
 #include <QSettings>
+#include <QSaveFile>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QUrl>
 #include <QtGlobal>
+#if defined(Q_OS_LINUX)
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusPendingCall>
+#endif
 
 namespace {
 
@@ -92,4 +100,39 @@ void AppSettings::clearWallpaper()
 void AppSettings::copyText(const QString& text)
 {
     QGuiApplication::clipboard()->setText(text);
+}
+
+QString AppSettings::exportLog(const QString& destination, const QString& text)
+{
+    const QUrl url(destination);
+    if (!url.isLocalFile())
+        return QStringLiteral("请选择本地文件。");
+    QString safe = text;
+    const QString token = ApiClient::instance()->token();
+    if (!token.isEmpty())
+        safe.replace(token, QStringLiteral("[已隐藏 Token]"), Qt::CaseSensitive);
+    safe.replace(QRegularExpression(QStringLiteral("(Bearer\\s+)[^\\s]+"), QRegularExpression::CaseInsensitiveOption),
+                 QStringLiteral("\\1[已隐藏]"));
+    QSaveFile file(url.toLocalFile());
+    if (!file.open(QIODevice::WriteOnly))
+        return file.errorString();
+    const QByteArray data = safe.toUtf8();
+    if (file.write(data) != data.size() || !file.commit())
+        return file.errorString();
+    return QString();
+}
+
+void AppSettings::notify(const QString& title, const QString& message)
+{
+#if defined(Q_OS_LINUX)
+    QDBusMessage call = QDBusMessage::createMethodCall(
+        QStringLiteral("org.freedesktop.Notifications"), QStringLiteral("/org/freedesktop/Notifications"),
+        QStringLiteral("org.freedesktop.Notifications"), QStringLiteral("Notify"));
+    call << QStringLiteral("QFRP") << quint32(0) << QStringLiteral("qml-frpc") << title << message
+         << QStringList() << QVariantMap() << int(-1);
+    QDBusConnection::sessionBus().asyncCall(call);
+#else
+    Q_UNUSED(title);
+    Q_UNUSED(message);
+#endif
 }

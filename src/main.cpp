@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
     // 任何形式的正常退出(界面退出按钮/窗口关闭/SIGTERM)都会触发 aboutToQuit,
     // 在这里把还活着的 frpc pid 写入状态文件,下次启动时接管
     QObject::connect(&app, &QGuiApplication::aboutToQuit,
-                     [] { FrpcManager::instance()->saveState(); });
+                     [] { FrpcManager::instance()->prepareForExit(); });
 
     QQmlApplicationEngine engine;
     // 把单例作为上下文属性暴露给 QML,QML 里直接用 apiClient.xxx / frpc.xxx 调用

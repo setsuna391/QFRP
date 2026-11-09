@@ -35,6 +35,8 @@ public:
     Q_INVOKABLE void clearWallpaper();
     //复制任意文本到系统剪贴板(QML 原生没有可靠的剪贴板访问)
     Q_INVOKABLE void copyText(const QString& text);
+    Q_INVOKABLE QString exportLog(const QString& destination, const QString& text);
+    Q_INVOKABLE void notify(const QString& title, const QString& message);
 
 signals:
     void wallpaperFileChanged();

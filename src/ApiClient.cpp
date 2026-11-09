@@ -1,4 +1,9 @@
 #include "ApiClient.h"
+#include <QHostInfo>
+#include <QNetworkProxy>
+#include <QProcess>
+#include <QTimer>
+#include <QTcpSocket>
 
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -23,6 +28,104 @@ const QString FRPC_VERSION = QStringLiteral("0.51.0-sakura-7.2");
 
 const qint64 REQUEST_TIMEOUT_MS = 15000;
 //所有请求的超时时间(毫秒),防止网络异常时请求永远挂起
+
+void ApiClient::checkLocalService(const QString& host, int port)
+{
+    const QString address = host.trimmed();
+    if (address.isEmpty() || port < 1 || port > 65535) {
+        emit localServiceCheckResult(host, port, QStringLiteral("请先填写有效的本地地址和端口。"));
+        return;
+    }
+    auto* socket = new QTcpSocket(this);
+    socket->setProxy(QNetworkProxy::NoProxy);
+    auto finish = [this, socket, host, port](const QString& message) {
+        if (socket->property("checkFinished").toBool())
+            return;
+        socket->setProperty("checkFinished", true);
+        emit localServiceCheckResult(host, port, message);
+        socket->abort();
+        socket->deleteLater();
+    };
+    connect(socket, &QTcpSocket::connected, this, [finish] {
+        finish(QStringLiteral("TCP 连接成功；不代表应用协议或外网访问一定正常。"));
+    });
+    connect(socket, &QTcpSocket::errorOccurred, this, [socket, finish](QAbstractSocket::SocketError) {
+        finish(QStringLiteral("TCP 连接失败：%1。请检查服务、地址、端口和防火墙。").arg(socket->errorString()));
+    });
+    QTimer::singleShot(5000, socket, [finish] {
+        finish(QStringLiteral("TCP 连接超时。请检查服务、地址、端口和防火墙。"));
+    });
+    socket->connectToHost(address, static_cast<quint16>(port));
+}
+
+void ApiClient::diagnoseNode(const QString& host)
+{
+    const QString name = host.trimmed();
+    QUrl url;
+    url.setScheme(QStringLiteral("http"));
+    url.setHost(name);
+    url.setPort(8880);
+    url.setPath(QStringLiteral("/"));
+    if (name.isEmpty() || !url.isValid() || url.host().isEmpty() || name.contains('/') || name.contains('@')) {
+        emit nodeDiagnosticResult(host, QStringLiteral("节点地址无效，无法诊断。"));
+        return;
+    }
+
+    QHostInfo::lookupHost(name, this, [this, host, name, url](const QHostInfo& info) {
+        if (info.error() != QHostInfo::NoError || info.addresses().isEmpty()) {
+            emit nodeDiagnosticResult(host, QStringLiteral("DNS 解析失败：%1").arg(info.errorString()));
+            return;
+        }
+        QStringList addresses;
+        for (const auto& address : info.addresses())
+            addresses.append(address.toString());
+        emit nodeDiagnosticResult(host, QStringLiteral("DNS：%1").arg(addresses.join(QStringLiteral(", "))));
+
+#ifdef Q_OS_LINUX
+        // ip 命令只读取路由；选择 IPv4 地址展示，实际连接可能选用 IPv6。
+        for (const auto& address : info.addresses()) {
+            if (address.protocol() != QAbstractSocket::IPv4Protocol)
+                continue;
+            auto* route = new QProcess(this);
+            connect(route, &QProcess::finished, this, [this, route, host](int code, QProcess::ExitStatus status) {
+                const QString result = QString::fromLocal8Bit(route->readAllStandardOutput()).trimmed();
+                emit nodeDiagnosticResult(host, code == 0 && status == QProcess::NormalExit && !result.isEmpty()
+                    ? QStringLiteral("IPv4 路由：%1（实际连接可能使用其他地址）").arg(result)
+                    : QStringLiteral("IPv4 路由不可用。"));
+                route->deleteLater();
+            });
+            connect(route, &QProcess::errorOccurred, this, [this, route, host](QProcess::ProcessError error) {
+                if (error == QProcess::FailedToStart) {
+                    emit nodeDiagnosticResult(host, QStringLiteral("无法运行 ip 命令，已跳过路由检查。"));
+                    route->deleteLater();
+                }
+            });
+            route->start(QStringLiteral("ip"), {QStringLiteral("route"), QStringLiteral("get"), address.toString()});
+            QTimer::singleShot(3000, route, [route] { if (route->state() != QProcess::NotRunning) route->kill(); });
+            break;
+        }
+#endif
+        auto* manager = new QNetworkAccessManager(this);
+        manager->setProxy(QNetworkProxy::NoProxy);
+        QNetworkRequest request(url);
+        request.setTransferTimeout(8000);
+        request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+        QNetworkReply* reply = manager->get(request);
+        connect(reply, &QNetworkReply::finished, this, [this, reply, manager, host] {
+            const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            const QByteArray server = reply->rawHeader("Server");
+            if (status == 503 && server.contains("SakuraFrp")) {
+                emit nodeDiagnosticResult(host, QStringLiteral("8880 端口：节点正常响应（HTTP 503）。这不保证 frpc 登录端口可用。"));
+            } else if (status) {
+                emit nodeDiagnosticResult(host, QStringLiteral("8880 端口：收到 HTTP %1，未确认是 SakuraFrp 节点。" ).arg(status));
+            } else {
+                emit nodeDiagnosticResult(host, QStringLiteral("8880 端口：%1。可检查节点状态、TUN/代理规则或尝试其他网络。").arg(reply->errorString()));
+            }
+            reply->deleteLater();
+            manager->deleteLater();
+        });
+    });
+}
 
 ApiClient* ApiClient::instance()
 {
