@@ -30,9 +30,12 @@ Item {
     property real nowMs: 0
     Timer {
         interval: 1000
-        running: root.runningIds.size > 0
+        running: root.runningIds.size > 0 && root.currentPage === "tunnels"
+                 && root.appWindow && root.appWindow.visible
+                 && root.appWindow.visibility !== Window.Minimized
         repeat: true
         onTriggered: root.nowMs = Date.now()
+        onRunningChanged: if (running) root.nowMs = Date.now()
     }
 
     function uptimeStr(id) {
@@ -71,14 +74,13 @@ Item {
     //与 /user/info 里 group.level 比较,低于要求的节点标记为不可用
     readonly property var filteredNodes: {
         var out = []
-        var level = root.userInfo.group && root.userInfo.group.level !== undefined ? root.userInfo.group.level : 0
+        var kw = root.nodeSearch.toLowerCase()
         for (var i = 0; i < root.nodes.length; i++) {
             var n = root.nodes[i]
             var v = n.vip || 0
             if (root.nodeFilter === "free" && v !== 0) continue
             if (root.nodeFilter === "vip" && v !== 3) continue
             if (root.nodeFilter === "plus" && v !== 4) continue
-            var kw = root.nodeSearch.toLowerCase()
             if (kw !== "" && String(n.name || "").toLowerCase().indexOf(kw) < 0) continue
             out.push(n)
         }
@@ -92,7 +94,7 @@ Item {
             var v = root.nodes[i].vip || 0
             if (v === 0) counts.free++
             else if (v === 3) counts.vip++
-            else counts.plus++
+            else if (v === 4) counts.plus++
         }
         return [
             { key: "all", label: "全部", count: counts.all },
@@ -615,6 +617,7 @@ Item {
         }
         //frpc 二进制自动下载
         function onFrpcDownloadStarted() {
+            root.frpcUpdating = true
             addLog("未找到 frpc,正在从 natfrp 官方源自动下载...", "info")
         }
         function onFrpcDownloadFinished(path) {
@@ -680,8 +683,13 @@ Item {
         //恢复应用重启前仍在运行的隧道状态(进程由 FrpcManager 持有)
         var s = new Set(runningIds)
         var ids = frpc.runningTunnelIds()
-        for (var i = 0; i < ids.length; i++)
+        var times = Object.assign({}, startedAt)
+        nowMs = Date.now()
+        for (var i = 0; i < ids.length; i++) {
             s.add(String(ids[i]))
+            times[String(ids[i])] = nowMs
+        }
+        startedAt = times
         runningIds = s
         //支持 --page=nodes|tunnels|log|settings 启动直达指定页面
         var args = Qt.application.arguments || []
@@ -695,7 +703,8 @@ Item {
     property real waveTime: 0
     Timer {
         interval: 25
-        running: root.currentPage === "tunnels"
+        running: root.currentPage === "tunnels" && root.appWindow
+                 && root.appWindow.visible && root.appWindow.visibility !== Window.Minimized
         repeat: true
         onTriggered: root.waveTime = Date.now() / 1000
     }

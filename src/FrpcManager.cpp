@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 #include <QPointer>
+#include <QSaveFile>
 #include <QSettings>
 #include <QStandardPaths>
 #include <QSysInfo>
@@ -505,14 +506,16 @@ void FrpcManager::saveState() const
             obj.insert(it.key(), pid);
     }
     QDir().mkpath(QFileInfo(stateFilePath()).path());
-    QFile file(stateFilePath());
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    QSaveFile file(stateFilePath());
+    if (!file.open(QIODevice::WriteOnly)) {
         qWarning() << "[FrpcManager] failed to save state:" << file.errorString();
         return;
     }
     const QByteArray json = QJsonDocument(obj).toJson(QJsonDocument::Compact);
-    file.write(json);
-    file.close();
+    if (file.write(json) != json.size() || !file.commit()) {
+        qWarning() << "[FrpcManager] failed to save state:" << file.errorString();
+        return;
+    }
     qInfo().noquote() << "[FrpcManager] state saved:" << json;
 }
 
