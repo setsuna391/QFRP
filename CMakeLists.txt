@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick Network)
+find_package(Qt6 REQUIRED COMPONENTS Quick Network Widgets)
 if(UNIX AND NOT APPLE)
     find_package(Qt6 REQUIRED COMPONENTS DBus)
 endif()
@@ -53,6 +53,7 @@ qt_add_qml_module(QML_FRPC
 target_link_libraries(QML_FRPC PRIVATE
     Qt6::Quick
     Qt6::Network
+    Qt6::Widgets
 )
 if(UNIX AND NOT APPLE)
     target_link_libraries(QML_FRPC PRIVATE Qt6::DBus)

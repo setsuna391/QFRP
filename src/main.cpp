@@ -2,12 +2,16 @@
 #include "AppSettings.h"
 #include "FrpcManager.h"
 #include <QGuiApplication>
+#include <QApplication>
 #include <QIcon>
 #include <QLibraryInfo>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickWindow>
 #include <QSocketNotifier>
+#include <QMenu>
+#include <QSystemTrayIcon>
+#include <QWindow>
 #include <cstdio>
 
 // POSIX 信号处理仅类 Unix 平台使用;Windows 的 GUI 程序点关闭/系统注销
@@ -104,7 +108,7 @@ int main(int argc, char *argv[])
     // 其构造函数会在 main 之前自动初始化,无需手动 Q_INIT_RESOURCE
     //(MSVC 下该符号不导出,手动 extern 声明会导致链接失败)
 
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
     QGuiApplication::setOrganizationName("QML_FRPC");
     QGuiApplication::setApplicationName("QML_FRPC");
     //Wayland app_id 取自 desktopFileName:niri 窗口规则按 app-id 匹配时用
@@ -136,11 +140,39 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("apiClient", ApiClient::instance());
     engine.rootContext()->setContextProperty("frpc", FrpcManager::instance());
     engine.rootContext()->setContextProperty("appSettings", AppSettings::instance());
+    const bool trayAvailable = QSystemTrayIcon::isSystemTrayAvailable();
+    app.setQuitOnLastWindowClosed(!trayAvailable);
+    engine.rootContext()->setContextProperty("trayAvailable", trayAvailable);
 
     engine.loadFromModule("QML_FRPC", "Main");
 
     if (engine.rootObjects().isEmpty())
         return -1;
+
+    QMenu trayMenu;
+    QSystemTrayIcon tray(app.windowIcon());
+    if (trayAvailable) {
+        auto *window = qobject_cast<QWindow *>(engine.rootObjects().first());
+        if (window) {
+            auto showWindow = [window] {
+                window->showNormal();
+                window->raise();
+                window->requestActivate();
+            };
+            trayMenu.addAction(QStringLiteral("显示窗口"), showWindow);
+            trayMenu.addAction(QStringLiteral("隐藏窗口"), window, &QWindow::hide);
+            trayMenu.addSeparator();
+            trayMenu.addAction(QStringLiteral("退出 QFRP"), &app, &QCoreApplication::quit);
+            tray.setContextMenu(&trayMenu);
+            tray.setToolTip(QStringLiteral("QFRP"));
+            QObject::connect(&tray, &QSystemTrayIcon::activated, &app,
+                             [showWindow](QSystemTrayIcon::ActivationReason reason) {
+                                 if (reason == QSystemTrayIcon::Trigger || reason == QSystemTrayIcon::DoubleClick)
+                                     showWindow();
+                             });
+            tray.show();
+        }
+    }
 
     return app.exec();
 }

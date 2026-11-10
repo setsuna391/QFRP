@@ -1092,7 +1092,10 @@ Item {
                     //窗口控制:最小化 / 退出
                     WindowControls {
                         win: root.appWindow
-                        onMinimizeClicked: root.appWindow.showMinimized()
+                        onMinimizeClicked: {
+                            if (trayAvailable) root.appWindow.hide()
+                            else root.appWindow.showMinimized()
+                        }
                         onCloseClicked: {
                             if (root.runningIds.size > 0)
                                 quitPopup.open()

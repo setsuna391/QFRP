@@ -17,6 +17,8 @@ ApplicationWindow {
     color: Theme.cBg
     //无边框窗口:窗口控制按钮(最小化/退出)由界面顶栏提供,顶栏可拖动移动窗口
     flags: Qt.Window | Qt.FramelessWindowHint
+    //有托盘时隐藏窗口不能退出事件循环,但真正关闭窗口仍应退出。
+    onClosing: if (trayAvailable) Qt.callLater(Qt.quit)
 
     //退出时的状态保存在 C++ 侧完成(main.cpp 监听 aboutToQuit 并写入 frpc 状态文件)
 

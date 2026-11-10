@@ -40,7 +40,10 @@ Item {
         anchors.right: parent.right
         anchors.margins: 10
         win: root.appWindow
-        onMinimizeClicked: root.appWindow.showMinimized()
+        onMinimizeClicked: {
+            if (trayAvailable) root.appWindow.hide()
+            else root.appWindow.showMinimized()
+        }
         onCloseClicked: root.appWindow.close()
     }
 
