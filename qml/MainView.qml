@@ -440,6 +440,12 @@ Item {
         }
     }
 
+    //磨砂层连续重烘一小段:见下方 frostBg 处的注释
+    function rebakeFrostBurst() {
+        frostBakeBurst.left = 12
+        frostBakeBurst.restart()
+    }
+
     // ===== 背景 =====
     Rectangle {
         anchors.fill: parent
@@ -508,6 +514,23 @@ Item {
     //烘焙出的静态磨砂背景。
     //注意必须全分辨率烘焙:纹理若降采样,铺回窗口时模糊半径被等比放大,
     //64px 的磨砂会变成 ~128px 的"看不清"(半分辨率省的那点带宽完全不值)
+    //
+    //冷启动修复:Wayland 合成器(niri 等)可能在窗口首帧前暂停渲染,
+    //onCompleted 里排队的烘焙(scheduleUpdate)就不会执行,窗口一直停在
+    //未烘焙的原始帧上,要拖动窗口触发重绘才恢复。对策:启动后 ~1.4s 内
+    //反复排入烘焙(live:false 下没帧可渲染时只是标脏,零成本),渲染一恢复
+    //烘焙就能落帧;窗口从隐藏工作区切回(visible 翻转)时同样补一轮。
+    Timer {
+        id: frostBakeBurst
+        interval: 120
+        repeat: true
+        property int left: 0
+        onTriggered: {
+            frostBg.scheduleUpdate()
+            if (--left <= 0)
+                stop()
+        }
+    }
     ShaderEffectSource {
         id: frostBg
         anchors.fill: parent
@@ -516,8 +539,15 @@ Item {
         live: false
         smooth: true
         visible: wallpaperImage.effectiveSource !== ""
-        Component.onCompleted: frostBg.scheduleUpdate()
+        Component.onCompleted: root.rebakeFrostBurst()
         onWidthChanged: scheduleUpdate()
+        Connections {
+            target: root.Window.window
+            function onVisibleChanged() {
+                if (root.Window.window && root.Window.window.visible)
+                    root.rebakeFrostBurst()
+            }
+        }
         Connections {
             target: Theme
             //主题切换会改遮罩色,重烘一次

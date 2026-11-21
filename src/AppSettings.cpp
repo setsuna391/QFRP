@@ -40,6 +40,11 @@ AppSettings* AppSettings::instance()
 AppSettings::AppSettings(QObject* parent)
     : QObject(parent)
 {
+    //自愈:缓存目录可能被系统清理(wallpaper.jpg 没了但设置还记着旧路径),
+    //悬空引用会让每次启动 Image 加载失败、磨砂层空转,这里清掉回落到内置壁纸
+    const QString wp = wallpaperFile();
+    if (!wp.isEmpty() && !QFileInfo::exists(wp))
+        setWallpaperFile(QString());
 }
 
 QString AppSettings::wallpaperFile() const
