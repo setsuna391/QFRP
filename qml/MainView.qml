@@ -38,6 +38,23 @@ Item {
         onRunningChanged: if (running) root.nowMs = Date.now()
     }
 
+    //流量趋势轮询:/tunnel/traffic 是小时桶数据,服务端对"当前小时"实时累计,
+    //60s 拉一次让曲线末点随流量生长;仅在隧道页可见且有运行中隧道时轮询。
+    //无此轮询时图表只在打开页面/手动刷新时取一次数,曲线看起来完全静止。
+    Timer {
+        interval: 60000
+        running: root.currentPage === "tunnels" && root.runningIds.size > 0
+                 && root.appWindow && root.appWindow.visible
+                 && root.appWindow.visibility !== Window.Minimized
+        repeat: true
+        onTriggered: {
+            for (var i = 0; i < root.tunnels.length; i++)
+                if (root.runningIds.has(String(root.tunnels[i].id)))
+                    apiClient.getTunnelTraffic(String(root.tunnels[i].id))
+        }
+        onRunningChanged: if (running) onTriggered()
+    }
+
     function uptimeStr(id) {
         var t0 = (root.startedAt || {})[id]
         if (!t0) return ""
